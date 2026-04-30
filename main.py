@@ -1,5 +1,6 @@
 import uvicorn
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware  # Імпортуємо Middleware
 from starlette.responses import JSONResponse
@@ -10,6 +11,7 @@ from src.db.session import get_db
 from src.api.contact_api import router as contact_router
 from src.api import auth, users, health
 from src.api.users import limiter
+from src.db.redis_client import check_redis_connection, redis_client
 from src.config.app_config import settings
 
 logging.basicConfig(
@@ -17,8 +19,30 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Код, який виконується ПРИ ЗАПУСКУ
+    if settings.ENABLE_REDIS:
+        is_connected = await check_redis_connection()
+        if not is_connected:
+            logging.warning(
+                "!!! Redis is enabled but not accessible. Application will work without cache. !!!"
+            )
+    else:
+        logging.info("Redis caching is disabled by configuration.")
+
+    yield  # Тут застосунок працює і приймає запити
+
+    # Код, який виконується ПРИ ВИМКНЕННІ
+    if settings.ENABLE_REDIS:
+        await redis_client.close()
+        logging.info("Redis connection closed.")
+
+
 app = FastAPI(
-    title="Contacts API"
+    title="Contacts API",
+    lifespan=lifespan
     # title="Contacts API", swagger_ui_parameters={"defaultModelsExpandDepth": -1} # щоб прибрати схему
 )
 app.state.limiter = limiter
@@ -40,6 +64,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={"error": "Перевищено ліміт запитів. Спробуйте пізніше."},
     )
+
 
 app.include_router(health.router)
 app.include_router(contact_router, prefix="/api")

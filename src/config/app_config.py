@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = Field(default=5432)
 
     # ============================
+    # Redis
+    # ============================
+    ENABLE_REDIS: bool = Field(default=False)
+    REDIS_HOST: str = Field(default="localhost")
+    REDIS_PORT: int = Field(default=6379)
+
+    # ============================
     # JWT Автентифікація
     # ============================
     JWT_SECRET: SecretStr = Field(
@@ -145,6 +152,10 @@ if settings.LOG_LEVEL.upper() == "DEBUG":
 
     mail_pass = settings.MAIL_PASSWORD.get_secret_value()
     print(f"MAIL_PASSWORD        : {'*' * 8} (довжина: {len(mail_pass)} символів)")
+
+    print(f"ENABLE_REDIS         : {settings.ENABLE_REDIS}")
+    print(f"REDIS_HOST           : {settings.REDIS_HOST}")
+    print(f"REDIS_PORT           : {settings.REDIS_PORT}")
 
     jwt_secret_len = len(settings.JWT_SECRET.get_secret_value())
     print(f"JWT_SECRET           : {'*' * 8} (довжина: {jwt_secret_len} символів)")
