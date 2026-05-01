@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from libgravatar import Gravatar
-
+from src.db.redis_client import invalidate_cache
 from src.repositories.user_repository import UserRepository
 from src.schemas.user import UserCreate
 
@@ -35,4 +35,7 @@ class UserService:
         return await self.repository.confirmed_email(email)
 
     async def update_avatar_url(self, email: str, url: str):
+        return await self.repository.update_avatar_url(email, url)
+
+    async def update_avatar(self, email: str, url: str):
         return await self.repository.update_avatar_url(email, url)

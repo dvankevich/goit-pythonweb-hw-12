@@ -2,7 +2,7 @@ import logging
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from src.db.redis_client import invalidate_cache
 from src.models import User
 from src.schemas.user import UserCreate
 
@@ -58,4 +58,6 @@ class UserRepository:
         user.avatar = url
         await self.db.commit()
         await self.db.refresh(user)
+
+        await invalidate_cache(f"user:{user.username}")
         return user

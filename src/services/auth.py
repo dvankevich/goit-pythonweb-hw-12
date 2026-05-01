@@ -110,14 +110,19 @@ async def get_current_user(
         try:
             cached_user = await redis_client.get(f"user:{username}")
             if cached_user:
+                logger.debug(f"User '{username}' retrieved from Redis cache.")
                 user_data = json.loads(cached_user)
                 if user_data.get("created_at"):
                     user_data["created_at"] = datetime.fromisoformat(user_data["created_at"])
                 return User(**user_data)
+            # Логуємо випадок, коли кеш увімкнено, але ключа немає (Cache Miss)
+            logger.debug(f"User '{username}' not found in Redis cache (Cache Miss).")
+
         except Exception as e:
             logger.warning(f"Redis error: {e}. Falling back to PostgreSQL.")
 
     # Якщо Redis вимкнено або сталася помилка — йдемо в БД
+    logger.debug(f"Retrieving user '{username}' from PostgreSQL database.")
     user_service = UserService(db)
     user = await user_service.get_user_by_username(username)
     
@@ -137,6 +142,7 @@ async def get_current_user(
                 "hashed_password": user.hashed_password
             }
             await redis_client.set(f"user:{username}", json.dumps(user_to_cache), ex=3600)
+            logger.debug(f"User '{username}' data has been cached in Redis.")
         except Exception as e:
             logger.error(f"Failed to cache user: {e}")
 

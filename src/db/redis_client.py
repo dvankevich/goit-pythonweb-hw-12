@@ -44,3 +44,21 @@ async def check_redis_connection() -> bool:
 async def get_redis():
     """Повертає клієнт Redis (для FastAPI Dependency Injection)"""
     return redis_client
+
+
+async def invalidate_cache(key: str):
+    """Видаляє запис із кешу при оновленні даних"""
+    if settings.ENABLE_REDIS:
+        try:
+            # Додаємо логування перед видаленням
+            logger.debug(f"Attempting to invalidate Redis cache for key: {key}")
+
+            result = await redis_client.delete(key)
+
+            if result:
+                logger.debug(f"Successfully invalidated cache for key: {key}")
+            else:
+                logger.debug(f"Cache key not found, nothing to delete: {key}")
+
+        except Exception as e:
+            logger.error(f"Failed to invalidate cache for {key}: {e}")
