@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import redis.asyncio as redis
+from typing import cast, Awaitable
 from src.config.app_config import settings
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ async def check_redis_connection() -> bool:
 
     try:
         # Зовнішній таймаут 200мс для гарантії швидкодії
-        return await asyncio.wait_for(redis_client.ping(), timeout=0.2)
+        return await asyncio.wait_for(cast(Awaitable[bool], redis_client.ping()), timeout=0.2)
     except asyncio.TimeoutError:
         logger.warning("Redis connection timed out (external limit).")
         return False
