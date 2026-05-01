@@ -51,3 +51,29 @@ async def send_email(email: EmailStr, username: str, host: str):
         logger.error(f"Error connecting to email server for {email}: {err}")
     except Exception as err:
         logger.error(f"Unexpected error sending email to {email}: {err}", exc_info=True)
+
+
+async def send_reset_password_email(email: EmailStr, username: str, host: str):
+    try:
+        token = create_email_token(
+            {"sub": email}
+        )  
+
+        message = MessageSchema(
+            subject="Reset your password",
+            recipients=[NameEmail(name=username, email=email)],
+            template_body={
+                "host": host,
+                "username": username,
+                "token": token,
+            },
+            subtype=MessageType.html,
+        )
+
+        fm = FastMail(email_conf)
+        await fm.send_message(message, template_name="reset_password.html")
+
+        logger.info(f"Password reset email successfully sent to {email}")
+
+    except Exception as err:
+        logger.error(f"Error sending password reset email to {email}: {err}")

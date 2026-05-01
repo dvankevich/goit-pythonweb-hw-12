@@ -61,3 +61,9 @@ class UserRepository:
 
         await invalidate_cache(f"user:{user.username}")
         return user
+
+    async def update_password(self, email: str, new_hashed_password: str) -> None:
+        user = await self.get_user_by_email(email)
+        if user:
+            user.hashed_password = new_hashed_password
+            await self.db.commit()

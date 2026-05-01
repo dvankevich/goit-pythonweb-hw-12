@@ -7,14 +7,15 @@ from fastapi import (
     BackgroundTasks,
     Request,
 )
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 from src.api.users import limiter
 from src.db.session import get_db
-from src.schemas.user import RequestEmail, Token, User, UserCreate
+from src.schemas.user import RequestEmail, Token, User, UserCreate, ResetPassword
 from src.services.auth import create_access_token, Hash, get_email_from_token
 from src.services.users import UserService
-from src.services.email import send_email
+from src.services.email import send_email, send_reset_password_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -118,3 +119,53 @@ async def request_email(
     )
 
     return generic_message
+
+
+@router.post("/forgot_password")
+@limiter.limit("3/minute")
+async def forgot_password(
+    body: RequestEmail,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    user_service = UserService(db)
+    user = await user_service.get_user_by_email(body.email)
+
+    if user:
+        # Відправляємо лист у бекграунді
+        background_tasks.add_task(
+            send_reset_password_email, user.email, user.username, str(request.base_url)
+        )
+
+    return {
+        "message": "Якщо ваша адреса є у нашій базі, ви отримаєте лист з інструкціями щодо скидання пароля."
+    }
+
+
+@router.post("/reset_password/{token}")
+async def reset_password(
+    token: str, body: ResetPassword, db: AsyncSession = Depends(get_db)
+):
+    # Дістаємо email з токена
+    email = await get_email_from_token(token)
+
+    user_service = UserService(db)
+    user = await user_service.get_user_by_email(email)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Недійсний токен або користувача не знайдено",
+        )
+
+    # Хешуємо новий пароль та зберігаємо
+    hashed_password = Hash().get_password_hash(body.new_password)
+    await user_service.update_password(email, hashed_password)
+
+    # Інвалідуємо кеш Redis для цього користувача, щоб він мусив залогінитись наново
+    from src.services.auth import redis_client
+
+    await redis_client.delete(f"user:{user.username}")
+
+    return {"message": "Пароль успішно змінено"}
