@@ -20,5 +20,9 @@ wait_for_db
 echo "Виконуємо міграції..."
 alembic upgrade head
 
+# Створюємо адміністратора
+echo "Перевірка/створення адміністратора..."
+python -m src.utils.create_admin
+
 echo "Запускаємо сервер..."
 exec uvicorn main:app --host 0.0.0.0 --port 8000

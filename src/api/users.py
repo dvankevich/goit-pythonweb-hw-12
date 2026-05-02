@@ -7,7 +7,7 @@ from src.db.session import get_db
 from src.services.upload_file import UploadFileService
 from src.services.users import UserService
 from src.models.user import User
-from src.services.auth import get_current_user
+from src.services.auth import get_current_user, get_current_admin_user
 from src.schemas.user import UserResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -27,7 +27,7 @@ async def me(request: Request, user: User = Depends(get_current_user)):
 @router.patch("/avatar", response_model=UserResponse)
 async def update_avatar_user(
     file: UploadFile = File(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
     upload_service = UploadFileService()

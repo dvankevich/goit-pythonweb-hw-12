@@ -110,6 +110,43 @@ If you prefer to run the application outside of Docker:
     fastapi dev main.py
     ```
 
+This is a professional and clear section for your **README.md** file, covering the setup and execution of the admin creation script.
+
+---
+
+## 🛠 Administrative Tasks
+
+### Creating an Initial Admin User
+
+The project includes a utility script to quickly seed the database with an administrative account. This is particularly useful for initial deployment or resetting the development environment.
+
+#### 1. Configure Credentials
+Before running the script, ensure your `.env` file contains the following variables. The script uses `SecretStr` to handle the password securely.
+
+| Variable | Description |
+| :--- | :--- |
+| `ADMIN_USERNAME` | The login username for the admin account. |
+| `ADMIN_EMAIL` | The email address (used for login and identification). |
+| `ADMIN_PASSWORD` | A strong password for the account. |
+
+#### 2. Run the Script
+To ensure all internal package imports (from `src`) are resolved correctly, run the utility as a module from the project root:
+
+```bash
+python -m src.utils.create_admin
+```
+
+#### What the script does:
+*   **Validation:** Checks if a user with the same email or username already exists to prevent duplicates.
+*   **Security:** Hashes the `ADMIN_PASSWORD` using the application's authentication service.
+*   **Status:** Sets the user's role to `ADMIN` and automatically marks the account as `confirmed`.
+*   **Integrity:** Performs a database commit and provides logging feedback on success or failure.
+
+---
+
+### Pro-tips for Development:
+*   **Python Path:** If you encounter import errors, ensure you are in the root directory (`goit-pythonweb-hw-12`) and your virtual environment is active.
+
 ---
 
 ## 📊 Monitoring

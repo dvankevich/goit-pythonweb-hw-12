@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     CLD_API_SECRET: SecretStr = Field(default=SecretStr("secret"))
 
     # ============================
+    # Admin user
+    # ============================
+    ADMIN_USERNAME: str = Field(default="admin")
+    ADMIN_EMAIL: EmailStr = Field(default="admin@dvankevich.pp.ua")
+    ADMIN_PASSWORD: SecretStr = Field(default=SecretStr("SuperSecretPassword123"))
+
+    # ============================
     # CORS
     # ============================
     CORS_ALLOWED_ORIGINS: str = Field(

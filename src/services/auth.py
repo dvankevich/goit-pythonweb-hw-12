@@ -14,7 +14,7 @@ from src.db.session import get_db
 from src.db.redis_client import redis_client
 from src.config.app_config import settings
 from src.services.users import UserService
-from src.models.user import User
+from src.models.user import User, UserRole
 
 
 class Hash:
@@ -28,6 +28,7 @@ class Hash:
         password_byte = password.encode("utf-8")[:72]
         salt = bcrypt.gensalt()
         return bcrypt.hashpw(password_byte, salt).decode("utf-8")
+
 
 logger = logging.getLogger(__name__)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -113,7 +114,9 @@ async def get_current_user(
                 logger.debug(f"User '{username}' retrieved from Redis cache.")
                 user_data = json.loads(cached_user)
                 if user_data.get("created_at"):
-                    user_data["created_at"] = datetime.fromisoformat(user_data["created_at"])
+                    user_data["created_at"] = datetime.fromisoformat(
+                        user_data["created_at"]
+                    )
                 return User(**user_data)
             # Логуємо випадок, коли кеш увімкнено, але ключа немає (Cache Miss)
             logger.debug(f"User '{username}' not found in Redis cache (Cache Miss).")
@@ -125,7 +128,7 @@ async def get_current_user(
     logger.debug(f"Retrieving user '{username}' from PostgreSQL database.")
     user_service = UserService(db)
     user = await user_service.get_user_by_username(username)
-    
+
     if user is None:
         raise credentials_exception
 
@@ -138,12 +141,25 @@ async def get_current_user(
                 "email": user.email,
                 "avatar": user.avatar,
                 "confirmed": user.confirmed,
+                "role": user.role.value if hasattr(user.role, "value") else user.role,
                 "created_at": user.created_at.isoformat() if user.created_at else None,
-                "hashed_password": user.hashed_password
+                "hashed_password": user.hashed_password,
             }
-            await redis_client.set(f"user:{username}", json.dumps(user_to_cache), ex=3600)
+            await redis_client.set(
+                f"user:{username}", json.dumps(user_to_cache), ex=3600
+            )
             logger.debug(f"User '{username}' data has been cached in Redis.")
         except Exception as e:
             logger.error(f"Failed to cache user: {e}")
 
     return user
+
+
+async def get_current_admin_user(current_user: User = Depends(get_current_user)):
+    # Перевіряємо, чи роль об'єкта збігається з ADMIN
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges",
+        )
+    return current_user
