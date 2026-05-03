@@ -77,13 +77,13 @@ async def get_email_from_token(token: str):
         email = payload.get("sub")
         if email is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Неправильний токен для перевірки електронної пошти",
             )
         return email
     except JWTError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Неправильний токен для перевірки електронної пошти",
         )
 
