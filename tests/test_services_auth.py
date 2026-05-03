@@ -92,6 +92,39 @@ async def test_get_current_user_cache_hit(mock_user_service, mock_redis, mock_se
 
 @pytest.mark.asyncio
 @patch("src.services.auth.redis_client")
+@patch("src.services.auth.UserService")
+async def test_get_current_user_redis_error_fallback(
+    mock_user_service_class, mock_redis, mock_session
+):
+    # Емулюємо помилку Redis
+    mock_redis.get.side_effect = Exception("Redis is down")
+
+    # Налаштовуємо повернення юзера з бази
+    # Створюємо екземпляр сервісу як мок
+    mock_user_service_instance = MagicMock()
+    mock_user_service_class.return_value = mock_user_service_instance
+
+    mock_user = User(
+        id=1, username="testuser", email="test@test.com", role=UserRole.USER
+    )
+
+    #  AsyncMock для асинхронного методу
+    mock_user_service_instance.get_user_by_username = AsyncMock(return_value=mock_user)
+
+    token = jwt.encode(
+        {"sub": "testuser"},
+        settings.JWT_SECRET.get_secret_value(),
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+    user = await get_current_user(token=token, db=mock_session)
+
+    assert user.username == "testuser"
+    mock_user_service_instance.get_user_by_username.assert_called_once_with("testuser")
+
+
+@pytest.mark.asyncio
+@patch("src.services.auth.redis_client")
 async def test_get_current_admin_user_success(mock_redis):
     admin_user = User(username="admin", role=UserRole.ADMIN)
 
