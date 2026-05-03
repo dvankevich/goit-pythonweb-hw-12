@@ -43,6 +43,7 @@ async def test_get_all_contacts(mock_session):
     assert contacts[0].id == 1
     mock_session.execute.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_get_all_upcoming_birthdays(mock_session):
     # імітація результату БД
@@ -52,15 +53,16 @@ async def test_get_all_upcoming_birthdays(mock_session):
 
     # виклик функції з upcoming_birthdays=True
     await get_all(mock_session, user_id=1, upcoming_birthdays=True)
-    
+
     # об'єкт запиту  який переданов  execute
     args, _ = mock_session.execute.call_args
     query_str = str(args[0]).lower()
-    
+
     # перевірка запиту на наявність потрібних атрибутів і функцій
     assert "extract" in query_str
     assert "or" in query_str
     assert "user_id" in query_str
+
 
 @pytest.mark.asyncio
 async def test_create_contact(mock_session, contact_data):
@@ -71,6 +73,7 @@ async def test_create_contact(mock_session, contact_data):
     mock_session.add.assert_called_once()
     mock_session.commit.assert_awaited_once()
     mock_session.refresh.assert_awaited_once()
+
 
 @pytest.mark.asyncio
 async def test_update_contact_success(mock_session):
@@ -83,8 +86,9 @@ async def test_update_contact_success(mock_session):
     update_data = ContactUpdate(first_name="New Name")
     result = await update(mock_session, 1, update_data, 1)
 
-    assert result.first_name == "New Name" # type: ignore
+    assert result.first_name == "New Name"  # type: ignore
     mock_session.commit.assert_awaited_once()
+
 
 @pytest.mark.asyncio
 async def test_update_contact_not_found(mock_session):
@@ -94,3 +98,27 @@ async def test_update_contact_not_found(mock_session):
 
     result = await update(mock_session, 1, ContactUpdate(), 1)
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_delete_contact_found(mock_session):
+    contact = Contact(id=1, user_id=1)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = contact
+    mock_session.execute.return_value = mock_result
+
+    result = await delete(mock_session, 1, 1)
+
+    assert result is True
+    mock_session.delete.assert_called_with(contact)
+    mock_session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_contact_not_found(mock_session):
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_session.execute.return_value = mock_result
+
+    result = await delete(mock_session, 1, 1)
+    assert result is False
