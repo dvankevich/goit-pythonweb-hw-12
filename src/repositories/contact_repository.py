@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import date, timedelta
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, and_, or_, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.models import Contact
 from src.schemas.contact import ContactCreate, ContactUpdate
@@ -26,10 +26,18 @@ async def get_all(
 
     if upcoming_birthdays:
         today = date.today()
-        upcoming_dates = [
-            (today + timedelta(days=i)).strftime("%m-%d") for i in range(7)
-        ]
-        stmt = stmt.where(func.to_char(Contact.birthday, "MM-DD").in_(upcoming_dates))
+        upcoming_conditions = []
+
+        for i in range(7):
+            future_date = today + timedelta(days=i)
+            upcoming_conditions.append(
+                and_(
+                    extract("month", Contact.birthday) == future_date.month,
+                    extract("day", Contact.birthday) == future_date.day,
+                )
+            )
+
+        stmt = stmt.where(or_(*upcoming_conditions))
 
     result = await db.execute(stmt)
     return list(result.scalars().all())

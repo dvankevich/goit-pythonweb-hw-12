@@ -22,7 +22,9 @@ dependencies = [
     "fastapi-mail (>=1.6.2,<2.0.0)",
     "cloudinary (>=1.44.2,<2.0.0)",
     "redis (>=7.4.0,<8.0.0)",
-    "pytest (>=9.0.3,<10.0.0)"
+    "pytest (>=9.0.3,<10.0.0)",
+    "pytest-asyncio (>=1.3.0,<2.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)"
 ]
 
 
