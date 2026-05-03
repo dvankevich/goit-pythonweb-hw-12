@@ -42,3 +42,22 @@ async def test_get_all_contacts(mock_session):
     assert len(contacts) == 1
     assert contacts[0].id == 1
     mock_session.execute.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_all_upcoming_birthdays(mock_session):
+    # імітація результату БД
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = mock_result
+
+    # виклик функції з upcoming_birthdays=True
+    await get_all(mock_session, user_id=1, upcoming_birthdays=True)
+    
+    # об'єкт запиту  який переданов  execute
+    args, _ = mock_session.execute.call_args
+    query_str = str(args[0]).lower()
+    
+    # перевірка запиту на наявність потрібних атрибутів і функцій
+    assert "extract" in query_str
+    assert "or" in query_str
+    assert "user_id" in query_str
