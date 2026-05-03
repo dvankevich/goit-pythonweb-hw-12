@@ -61,3 +61,36 @@ async def test_get_all_upcoming_birthdays(mock_session):
     assert "extract" in query_str
     assert "or" in query_str
     assert "user_id" in query_str
+
+@pytest.mark.asyncio
+async def test_create_contact(mock_session, contact_data):
+    result = await create(mock_session, contact_data, user_id=1)
+
+    assert result.first_name == "Dima"
+    assert result.user_id == 1
+    mock_session.add.assert_called_once()
+    mock_session.commit.assert_awaited_once()
+    mock_session.refresh.assert_awaited_once()
+
+@pytest.mark.asyncio
+async def test_update_contact_success(mock_session):
+    # Імітуємо існуючий контакт
+    existing_contact = Contact(id=1, first_name="Old", user_id=1)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = existing_contact
+    mock_session.execute.return_value = mock_result
+
+    update_data = ContactUpdate(first_name="New Name")
+    result = await update(mock_session, 1, update_data, 1)
+
+    assert result.first_name == "New Name" # type: ignore
+    mock_session.commit.assert_awaited_once()
+
+@pytest.mark.asyncio
+async def test_update_contact_not_found(mock_session):
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_session.execute.return_value = mock_result
+
+    result = await update(mock_session, 1, ContactUpdate(), 1)
+    assert result is None
