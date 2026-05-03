@@ -122,3 +122,72 @@ async def test_delete_contact_not_found(mock_session):
 
     result = await delete(mock_session, 1, 1)
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_get_all_filter_by_first_name(mock_session):
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = mock_result
+
+    await get_all(mock_session, user_id=1, first_name="Dima")
+
+    args, _ = mock_session.execute.call_args
+    query_str = str(args[0]).lower()
+
+    # Перевіряємо структуру, яку ми бачимо в логах
+    assert "first_name" in query_str
+    assert "lower" in query_str
+    assert "like" in query_str
+    # Шукаємо саме назву параметра, а не "dima"
+    assert ":first_name_1" in query_str
+
+
+@pytest.mark.asyncio
+async def test_get_all_filter_by_last_name(mock_session):
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = mock_result
+
+    await get_all(mock_session, user_id=1, last_name="Dev")
+
+    args, _ = mock_session.execute.call_args
+    query_str = str(args[0]).lower()
+
+    assert "last_name" in query_str
+    assert "lower" in query_str
+    assert "like" in query_str
+    assert ":last_name_1" in query_str
+
+
+@pytest.mark.asyncio
+async def test_get_all_filter_by_email(mock_session):
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = mock_result
+
+    await get_all(mock_session, user_id=1, email="test@mail.com")
+
+    args, _ = mock_session.execute.call_args
+    query_str = str(args[0]).lower()
+
+    assert "email" in query_str
+    assert "lower" in query_str
+    assert "like" in query_str
+    assert ":email_1" in query_str
+
+
+@pytest.mark.asyncio
+async def test_get_all_no_filters(mock_session):
+    """Тест перевіряє, що фільтри не передані"""
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = mock_result
+
+    await get_all(mock_session, user_id=1)
+
+    args, _ = mock_session.execute.call_args
+    query_str = str(args[0]).lower()
+
+    assert "where contacts.user_id =" in query_str
+    assert "like" not in query_str
