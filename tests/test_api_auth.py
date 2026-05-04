@@ -24,8 +24,9 @@ PASSWORD_MAX = get_field_limit("password", "max_length")
 
 @pytest.fixture(autouse=True)
 def mock_email_services():
-    # шлях до мока має відповідати тому, де імпортована функція.
-    with patch("src.api.auth.send_email", new_callable=AsyncMock) as mock_send:
+    with patch(
+        "src.api.auth.send_verification_email", new_callable=AsyncMock
+    ) as mock_send:
         with patch(
             "src.api.auth.send_reset_password_email", new_callable=AsyncMock
         ) as mock_reset:
@@ -374,7 +375,7 @@ async def test_login_user_not_confirmed(client, db_session):
     user = User(
         username="lazy_user",
         email="lazy@ex.com",
-        hashed_password=hashed, 
+        hashed_password=hashed,
         confirmed=False,
     )
     db_session.add(user)
@@ -433,7 +434,7 @@ def test_register_password_too_short(client):
 
 
 def test_register_username_too_long(client):
-    invalid_username = "a" * (USERNAME_MAX + 1) # type: ignore
+    invalid_username = "a" * (USERNAME_MAX + 1)  # type: ignore
 
     response = client.post(
         f"{PREFIX}/register",
@@ -449,7 +450,7 @@ def test_register_username_too_long(client):
 
 
 def test_register_password_too_long(client):
-    invalid_password = "p" * (PASSWORD_MAX + 1) # type: ignore
+    invalid_password = "p" * (PASSWORD_MAX + 1)  # type: ignore
 
     response = client.post(
         f"{PREFIX}/register",
