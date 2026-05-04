@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi_mail.errors import ConnectionErrors
-from src.services.email import send_email, send_reset_password_email
+from src.services.email import send_verification_email, send_reset_password_email
 
 
 # Створюємо фікстуру для мокання FastMail
@@ -23,7 +23,7 @@ async def test_send_email_success(mock_fastmail):
     with patch("src.services.email.create_email_token") as mock_token:
         mock_token.return_value = "fake_token_123"
 
-        await send_email(email, username, host)
+        await send_verification_email(email, username, host)
 
         # Перевіряємо, чи був викликаний метод send_message
         assert mock_fastmail.send_message.called
@@ -43,7 +43,7 @@ async def test_send_email_connection_error(mock_fastmail):
     mock_fastmail.send_message.side_effect = ConnectionErrors("Connection failed")
 
     # Функція не повинна кидати Exception, бо ми ловимо ConnectionErrors
-    await send_email("test@example.com", "user", "host")
+    await send_verification_email("test@example.com", "user", "host")
 
     assert mock_fastmail.send_message.called
 
@@ -53,7 +53,7 @@ async def test_send_email_unexpected_error(mock_fastmail):
     """Тест обробки непередбаченої помилки (Exception) """
     mock_fastmail.send_message.side_effect = Exception("Unexpected")
 
-    await send_email("test@example.com", "user", "host")
+    await send_verification_email("test@example.com", "user", "host")
 
     assert mock_fastmail.send_message.called
 

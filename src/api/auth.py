@@ -15,7 +15,7 @@ from src.db.session import get_db
 from src.schemas.user import RequestEmail, Token, User, UserCreate, ResetPassword
 from src.services.auth import create_access_token, Hash, get_email_from_token
 from src.services.users import UserService
-from src.services.email import send_email, send_reset_password_email
+from src.services.email import send_verification_email, send_reset_password_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -47,7 +47,7 @@ async def register_user(
     user_data.password = Hash().get_password_hash(user_data.password)
     new_user = await user_service.create_user(user_data)
     background_tasks.add_task(
-        send_email, new_user.email, new_user.username, str(request.base_url)
+        send_verification_email, new_user.email, new_user.username, str(request.base_url)
     )
 
     return new_user
@@ -115,7 +115,7 @@ async def request_email(
         return generic_message
 
     background_tasks.add_task(
-        send_email, user.email, user.username, str(request.base_url)
+        send_verification_email, user.email, user.username, str(request.base_url)
     )
 
     return generic_message
