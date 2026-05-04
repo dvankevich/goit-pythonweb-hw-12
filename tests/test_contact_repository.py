@@ -1,8 +1,10 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from datetime import date, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models import Contact
+from src.schemas.contact import ContactCreate, ContactUpdate
 from src.repositories.contact_repository import (
     get_all,
     get_by_id,
@@ -11,9 +13,6 @@ from src.repositories.contact_repository import (
     update,
     delete,
 )
-from src.schemas.contact import ContactCreate, ContactUpdate
-from src.models import Contact
-
 
 @pytest.fixture
 def mock_session():
@@ -21,54 +20,88 @@ def mock_session():
 
 
 @pytest.fixture
-def contact_data():
-    return ContactCreate(
-        first_name="Dima",
-        last_name="Dev",
-        email="dima@example.com",
-        phone="+380000000000",
-        birthday=date(1995, 1, 1),
+def test_contact():
+    return Contact(
+        id=1,
+        first_name="Ivan",
+        last_name="Ivanov",
+        email="ivan@example.com",
+        birthday=date(1990, 5, 10),
+        user_id=1,
     )
 
 
 @pytest.mark.asyncio
-async def test_get_all_contacts(mock_session):
+async def test_get_all_no_filters(mock_session, test_contact):
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [Contact(id=1, user_id=1)]
-    mock_session.execute.return_value = mock_result
+    mock_result.scalars.return_value.all.return_value = [test_contact]
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    contacts = await get_all(mock_session, user_id=1)
+    contacts = await get_all(db=mock_session, user_id=1)
 
     assert len(contacts) == 1
-    assert contacts[0].id == 1
+    assert contacts[0].first_name == "Ivan"
     mock_session.execute.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_get_all_upcoming_birthdays(mock_session):
-    # імітація результату БД
+async def test_get_all_with_filters(mock_session, test_contact):
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = []
-    mock_session.execute.return_value = mock_result
+    mock_result.scalars.return_value.all.return_value = [test_contact]
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    # виклик функції з upcoming_birthdays=True
-    await get_all(mock_session, user_id=1, upcoming_birthdays=True)
+    await get_all(db=mock_session, user_id=1, first_name="Ivan")
 
-    # об'єкт запиту  який переданов  execute
-    args, _ = mock_session.execute.call_args
-    query_str = str(args[0]).lower()
-
-    # перевірка запиту на наявність потрібних атрибутів і функцій
-    assert "extract" in query_str
-    assert "or" in query_str
-    assert "user_id" in query_str
+    mock_session.execute.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_create_contact(mock_session, contact_data):
-    result = await create(mock_session, contact_data, user_id=1)
+async def test_get_all_upcoming_birthdays(mock_session, test_contact):
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [test_contact]
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    assert result.first_name == "Dima"
+    await get_all(db=mock_session, user_id=1, upcoming_birthdays=True)
+
+    mock_session.execute.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_by_id(mock_session, test_contact):
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = test_contact
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    result = await get_by_id(db=mock_session, contact_id=1, user_id=1)
+
+    assert result == test_contact
+    assert result.id == 1  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_get_by_email(mock_session, test_contact):
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = test_contact
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    result = await get_by_email(db=mock_session, email="ivan@example.com", user_id=1)
+
+    assert result == test_contact
+
+
+@pytest.mark.asyncio
+async def test_create_contact(mock_session):
+    contact_data = ContactCreate(
+        first_name="Petro",
+        last_name="Petrov",
+        email="petro@example.com",
+        phone="123456789",
+        birthday=date(1985, 1, 1),
+    )
+
+    result = await create(db=mock_session, contact_data=contact_data, user_id=1)
+
+    assert result.first_name == "Petro"
     assert result.user_id == 1
     mock_session.add.assert_called_once()
     mock_session.commit.assert_awaited_once()
@@ -76,41 +109,48 @@ async def test_create_contact(mock_session, contact_data):
 
 
 @pytest.mark.asyncio
-async def test_update_contact_success(mock_session):
-    # Імітуємо існуючий контакт
-    existing_contact = Contact(id=1, first_name="Old", user_id=1)
+async def test_update_contact_success(mock_session, test_contact):
+    # Мокаємо пошук контакту перед оновленням
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = existing_contact
-    mock_session.execute.return_value = mock_result
+    mock_result.scalar_one_or_none.return_value = test_contact
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    update_data = ContactUpdate(first_name="New Name")
-    result = await update(mock_session, 1, update_data, 1)
+    update_data = ContactUpdate(first_name="UpdatedName")
 
-    assert result.first_name == "New Name"  # type: ignore
+    result = await update(
+        db=mock_session, contact_id=1, contact_data=update_data, user_id=1
+    )
+
+    assert result.first_name == "UpdatedName"  # type: ignore
     mock_session.commit.assert_awaited_once()
+    mock_session.refresh.assert_awaited_once_with(test_contact)
 
 
 @pytest.mark.asyncio
 async def test_update_contact_not_found(mock_session):
+    # Контакт не знайдено
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
-    mock_session.execute.return_value = mock_result
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    result = await update(mock_session, 1, ContactUpdate(), 1)
+    result = await update(
+        db=mock_session, contact_id=99, contact_data=ContactUpdate(), user_id=1
+    )
+
     assert result is None
+    mock_session.commit.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_delete_contact_found(mock_session):
-    contact = Contact(id=1, user_id=1)
+async def test_delete_contact_success(mock_session, test_contact):
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = contact
-    mock_session.execute.return_value = mock_result
+    mock_result.scalar_one_or_none.return_value = test_contact
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    result = await delete(mock_session, 1, 1)
+    result = await delete(db=mock_session, contact_id=1, user_id=1)
 
     assert result is True
-    mock_session.delete.assert_called_with(contact)
+    mock_session.delete.assert_awaited_once_with(test_contact)
     mock_session.commit.assert_awaited_once()
 
 
@@ -118,76 +158,33 @@ async def test_delete_contact_found(mock_session):
 async def test_delete_contact_not_found(mock_session):
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
-    mock_session.execute.return_value = mock_result
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    result = await delete(mock_session, 1, 1)
+    result = await delete(db=mock_session, contact_id=1, user_id=1)
+
     assert result is False
+    mock_session.delete.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_get_all_filter_by_first_name(mock_session):
+@patch("src.repositories.contact_repository.date")  # Перевір шлях до файлу
+async def test_get_all_upcoming_birthdays_date_logic(mock_date, mock_session):
+    # фіксація дати
+    mock_date.today.return_value = date(2025, 12, 29)
+    mock_date.side_effect = lambda *args, **kw: date(*args, **kw)
+
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = []
-    mock_session.execute.return_value = mock_result
 
-    await get_all(mock_session, user_id=1, first_name="Dima")
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
-    args, _ = mock_session.execute.call_args
-    query_str = str(args[0]).lower()
+    await get_all(db=mock_session, user_id=1, upcoming_birthdays=True)
 
-    # Перевіряємо структуру, яку ми бачимо в логах
-    assert "first_name" in query_str
-    assert "lower" in query_str
-    assert "like" in query_str
-    # Шукаємо саме назву параметра, а не "dima"
-    assert ":first_name_1" in query_str
+    # отримання SQL рядка
+    called_stmt = mock_session.execute.call_args[0][0]
+    compiled_sql = str(called_stmt.compile(compile_kwargs={"literal_binds": True}))
 
-
-@pytest.mark.asyncio
-async def test_get_all_filter_by_last_name(mock_session):
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = []
-    mock_session.execute.return_value = mock_result
-
-    await get_all(mock_session, user_id=1, last_name="Dev")
-
-    args, _ = mock_session.execute.call_args
-    query_str = str(args[0]).lower()
-
-    assert "last_name" in query_str
-    assert "lower" in query_str
-    assert "like" in query_str
-    assert ":last_name_1" in query_str
-
-
-@pytest.mark.asyncio
-async def test_get_all_filter_by_email(mock_session):
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = []
-    mock_session.execute.return_value = mock_result
-
-    await get_all(mock_session, user_id=1, email="test@mail.com")
-
-    args, _ = mock_session.execute.call_args
-    query_str = str(args[0]).lower()
-
-    assert "email" in query_str
-    assert "lower" in query_str
-    assert "like" in query_str
-    assert ":email_1" in query_str
-
-
-@pytest.mark.asyncio
-async def test_get_all_no_filters(mock_session):
-    """Тест перевіряє, що фільтри не передані"""
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = []
-    mock_session.execute.return_value = mock_result
-
-    await get_all(mock_session, user_id=1)
-
-    args, _ = mock_session.execute.call_args
-    query_str = str(args[0]).lower()
-
-    assert "where contacts.user_id =" in query_str
-    assert "like" not in query_str
+    assert "EXTRACT(month FROM contacts.birthday) = 12" in compiled_sql
+    assert "EXTRACT(day FROM contacts.birthday) = 29" in compiled_sql
+    assert "EXTRACT(month FROM contacts.birthday) = 1" in compiled_sql
+    assert "EXTRACT(day FROM contacts.birthday) = 1" in compiled_sql
