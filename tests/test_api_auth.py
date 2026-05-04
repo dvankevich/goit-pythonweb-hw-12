@@ -1,14 +1,12 @@
 import pytest
 from unittest.mock import patch, AsyncMock
 
-# Визначаємо префікс, як у вашому робочому прикладі
 PREFIX = "/api/auth"
 
 
 @pytest.fixture(autouse=True)
 def mock_email_services():
-    # Важливо: шлях до мока має відповідати тому, де імпортована функція.
-    # Якщо роутер в src/api/auth.py, то шлях src.api.auth.send_email
+    # шлях до мока має відповідати тому, де імпортована функція.
     with patch("src.api.auth.send_email", new_callable=AsyncMock) as mock_send:
         with patch(
             "src.api.auth.send_reset_password_email", new_callable=AsyncMock
