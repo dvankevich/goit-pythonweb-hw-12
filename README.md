@@ -162,5 +162,7 @@ docker-compose logs -f app
 export PYTHONPATH=$PYTHONPATH:.
 pytest --cov=src --cov-report=term-missing # run all tests
 
+pytest --cov=src --cov-report=html # run tests and generate HTML report 
+
 pytest --cov=src.api.auth --cov-report=term-missing tests/test_api_auth.py # run test module
 ```
