@@ -36,13 +36,13 @@ async def lifespan(app: FastAPI):
 
     # Код, який виконується ПРИ ВИМКНЕННІ
     if settings.ENABLE_REDIS:
-        await redis_client.close()
+        await redis_client.aclose()
         logging.info("Redis connection closed.")
 
 
 app = FastAPI(
     title="Contacts API",
-    lifespan=lifespan
+    lifespan=lifespan,
     # title="Contacts API", swagger_ui_parameters={"defaultModelsExpandDepth": -1} # щоб прибрати схему
 )
 app.state.limiter = limiter

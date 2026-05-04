@@ -157,3 +157,10 @@ docker-compose logs -f app
 
 ---
 
+## run tests
+```bash
+export PYTHONPATH=$PYTHONPATH:.
+pytest --cov=src --cov-report=term-missing # run all tests
+
+pytest --cov=src.api.auth --cov-report=term-missing tests/test_api_auth.py # run test module
+```

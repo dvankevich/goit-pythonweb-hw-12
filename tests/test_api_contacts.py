@@ -148,3 +148,29 @@ def test_delete_contact_not_found(client, get_token):
     )
 
     assert response.status_code == 404
+
+
+def test_read_contacts_with_query_params(client, get_token):
+    """Перевірка отримання списку контактів із фільтрами (Query параметри)"""
+    response = client.get(
+        f"{PREFIX}/?first_name=Taras&last_name=Shevchenko&email=taras@example.com&upcoming_birthdays=true",
+        headers={"Authorization": f"Bearer {get_token}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+
+
+def test_update_contact_not_found(client, get_token):
+    """Перевірка помилки 404 при оновленні неіснуючого контакту"""
+    update_data = {"first_name": "Ghost"}
+
+    response = client.put(
+        f"{PREFIX}/9999",  # Неіснуючий ID
+        json=update_data,
+        headers={"Authorization": f"Bearer {get_token}"},
+    )
+
+    assert response.status_code == 404
+    assert "Contact not found" in response.json()["detail"]

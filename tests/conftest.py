@@ -81,20 +81,33 @@ def init_models_wrap():
     asyncio.run(init_models())
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
+async def db_session():
+    """Фікстура для прямої роботи з тестовою БД"""
+    async with TestingSessionLocal() as session:
+        yield session
+        # Після тесту можна очистити сесію, якщо потрібно
+        await session.rollback()
+
+
+@pytest.fixture(scope="session")
 def client():
     """Налаштовує TestClient та перевизначає залежність БД"""
+    from main import app
+    from src.db.session import get_db
 
     async def override_get_db():
         async with TestingSessionLocal() as session:
-            try:
-                yield session
-            except Exception:
-                await session.rollback()
-                raise
+            yield session
 
     app.dependency_overrides[get_db] = override_get_db
-    yield TestClient(app)
+
+    if hasattr(app.state, "limiter"):
+        app.state.limiter.enabled = False
+
+    with TestClient(app) as c:
+        yield c
+
     app.dependency_overrides.clear()
 
 
