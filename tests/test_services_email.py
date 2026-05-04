@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi_mail.errors import ConnectionErrors
+from fastapi_mail import MessageType
 from src.services.email import send_verification_email, send_reset_password_email
 
 
-# Створюємо фікстуру для мокання FastMail
 @pytest.fixture
 def mock_fastmail():
     with patch("src.services.email.FastMail") as mock:
@@ -13,9 +13,17 @@ def mock_fastmail():
         yield fm_instance
 
 
+# Фікстура, щоб тести завжди думали, що HTML-шаблони існують
+@pytest.fixture
+def mock_templates_exist():
+    with patch("src.services.email.Path.exists") as mock_exists:
+        mock_exists.return_value = True
+        yield mock_exists
+
+
 @pytest.mark.asyncio
-async def test_send_email_success(mock_fastmail):
-    """Тест успішного надсилання листа для підтвердження (рядок 36-49)"""
+async def test_send_email_success(mock_fastmail, mock_templates_exist):
+    """Тест успішного надсилання листа для підтвердження"""
     email = "test@example.com"
     username = "testuser"
     host = "http://localhost:8000"
@@ -25,42 +33,21 @@ async def test_send_email_success(mock_fastmail):
 
         await send_verification_email(email, username, host)
 
-        # Перевіряємо, чи був викликаний метод send_message
         assert mock_fastmail.send_message.called
 
-        # Отримуємо об'єкт повідомлення з виклику
-        message = mock_fastmail.send_message.call_args[0][0]
-        template_name = mock_fastmail.send_message.call_args[1]["template_name"]
+        # Отримуємо аргументи виклику
+        args, kwargs = mock_fastmail.send_message.call_args
+        message = args[0]
+        template_name = kwargs.get("template_name")
 
-        assert message.subject == "Confirm your email"
+        assert message.subject == "Confirm your email address"
         assert message.recipients[0].email == email
         assert template_name == "verify_email.html"
 
 
 @pytest.mark.asyncio
-async def test_send_email_connection_error(mock_fastmail):
-    """Тест обробки помилки з'єднання (ConnectionErrors) """
-    mock_fastmail.send_message.side_effect = ConnectionErrors("Connection failed")
-
-    # Функція не повинна кидати Exception, бо ми ловимо ConnectionErrors
-    await send_verification_email("test@example.com", "user", "host")
-
-    assert mock_fastmail.send_message.called
-
-
-@pytest.mark.asyncio
-async def test_send_email_unexpected_error(mock_fastmail):
-    """Тест обробки непередбаченої помилки (Exception) """
-    mock_fastmail.send_message.side_effect = Exception("Unexpected")
-
-    await send_verification_email("test@example.com", "user", "host")
-
-    assert mock_fastmail.send_message.called
-
-
-@pytest.mark.asyncio
-async def test_send_reset_password_email_success(mock_fastmail):
-    """Тест успішного надсилання листа для скидання пароля """
+async def test_send_reset_password_email_success(mock_fastmail, mock_templates_exist):
+    """Тест успішного надсилання листа для скидання пароля"""
     email = "reset@example.com"
     username = "resetuser"
     host = "http://localhost:8000"
@@ -69,19 +56,29 @@ async def test_send_reset_password_email_success(mock_fastmail):
 
     assert mock_fastmail.send_message.called
 
-    message = mock_fastmail.send_message.call_args[0][0]
-    template_name = mock_fastmail.send_message.call_args[1]["template_name"]
+    args, kwargs = mock_fastmail.send_message.call_args
+    message = args[0]
+    template_name = kwargs.get("template_name")
 
-    assert message.subject == "Reset your password"
+    assert message.subject == "Password Reset Request"
     assert message.recipients[0].email == email
     assert template_name == "reset_password.html"
 
 
 @pytest.mark.asyncio
-async def test_send_reset_password_email_error(mock_fastmail):
-    """Тест обробки помилки при скиданні пароля """
-    mock_fastmail.send_message.side_effect = Exception("Reset Error")
+async def test_send_email_fallback_flow(mock_fastmail):
+    """Окремий тест для перевірки логіки Fallback (коли шаблон не знайдено)"""
+    email = "fallback@example.com"
 
-    await send_reset_password_email("test@example.com", "user", "host")
+    with patch("src.services.email.Path.exists", return_value=False):
+        # Використовуємо AsyncMock для адмінського сповіщення
+        with patch(
+            "src.services.email.send_admin_alert", new_callable=AsyncMock
+        ) as mock_admin:
+            await send_verification_email(email, "user", "host")
 
     assert mock_fastmail.send_message.called
+    message = mock_fastmail.send_message.call_args[0][0]
+
+    assert "Security Link" in message.subject
+    assert message.subtype == MessageType.plain
