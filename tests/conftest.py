@@ -2,14 +2,16 @@ import asyncio
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.pool import StaticPool
 from unittest.mock import AsyncMock
 
 from main import app
-from src.db.session import get_db  # Перевірте шлях до вашої залежності get_db
+from src.db.session import get_db
 from src.models.user import Base, User, UserRole
 from src.services.auth import create_access_token, Hash
+from src.config.app_config import settings
 
 # Налаштування тестової бази SQLite в пам'яті
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
@@ -100,4 +102,31 @@ def client():
 async def get_token():
     """Генерує JWT токен для авторизованих запитів у тестах"""
     token = await create_access_token(data={"sub": test_user_data["username"]})
+    return token
+
+
+@pytest_asyncio.fixture()
+async def get_admin_token():
+    """Створює реального адміна в БД та повертає його токен"""
+    async with TestingSessionLocal() as session:
+        query = select(User).filter(User.username == settings.ADMIN_USERNAME)
+        result = await session.execute(query)
+        admin = result.scalar_one_or_none()
+
+        if not admin:
+            hashed_password = Hash().get_password_hash(
+                settings.ADMIN_PASSWORD.get_secret_value()
+            )
+            admin = User(
+                username=settings.ADMIN_USERNAME,
+                email=settings.ADMIN_EMAIL,
+                hashed_password=hashed_password,
+                role=UserRole.ADMIN,  # Ось тут ключова перевірка
+                confirmed=True,
+            )
+            session.add(admin)
+            await session.commit()
+            await session.refresh(admin)
+
+    token = await create_access_token(data={"sub": settings.ADMIN_USERNAME})
     return token
