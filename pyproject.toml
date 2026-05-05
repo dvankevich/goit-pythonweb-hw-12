@@ -46,5 +46,6 @@ asyncio_default_fixture_loop_scope = "function"
 
 [dependency-groups]
 dev = [
-    "sphinx (>=9.1.0,<10.0.0)"
+    "sphinx (>=9.1.0,<10.0.0)",
+    "rstfmt (>=0.0.14,<0.0.15)"
 ]
