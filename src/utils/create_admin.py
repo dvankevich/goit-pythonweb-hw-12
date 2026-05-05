@@ -13,6 +13,19 @@ logger = logging.getLogger(__name__)
 
 
 async def create_admin():
+    """Create an admin user if one doesn't already exist.
+    
+    Checks if an admin user with the configured email or username
+    already exists. If not, creates a new admin user with
+    ADMIN role and confirmed status.
+    
+    The function uses configuration values from settings:
+    - ADMIN_EMAIL: Admin user email address
+    - ADMIN_USERNAME: Admin username
+    - ADMIN_PASSWORD: Admin password (from SecretStr)
+    
+    Logs the creation process and any errors encountered.
+    """
     async for db in get_db():
         query = select(User).filter(
             (User.email == settings.ADMIN_EMAIL)
