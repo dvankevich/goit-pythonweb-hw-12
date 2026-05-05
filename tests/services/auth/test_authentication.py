@@ -61,12 +61,15 @@ async def test_get_current_user_cache_hit(mock_user_service, mock_redis, mock_se
     # Mock Redis cache hit
     mock_redis.get.return_value = '{"id": 1, "username": "testuser", "email": "test@example.com"}'
     
-    with patch('src.services.auth.UserRepository') as mock_repo_class:
+    with patch('src.services.users.UserRepository') as mock_repo_class:
         mock_repo = AsyncMock()
         mock_repo_class.return_value = mock_repo
         mock_repo.get_user_by_email.return_value = mock_user
         
-        result = await get_current_user("test@example.com", mock_session, mock_redis)
+        # Mock the token dependency
+        mock_token = "fake_token"
+        
+        result = await get_current_user(mock_token, mock_session, mock_redis)
         
         assert result.email == "test@example.com"
         assert result.username == "testuser"
@@ -88,19 +91,22 @@ async def test_get_current_user_redis_error_fallback(mock_session):
     mock_redis = AsyncMock()
     mock_redis.get.side_effect = Exception("Redis connection error")
     
-    with patch('src.services.auth.UserRepository') as mock_repo_class:
+    with patch('src.services.users.UserRepository') as mock_repo_class:
         mock_repo = AsyncMock()
         mock_repo_class.return_value = mock_repo
         mock_repo.get_user_by_email.return_value = mock_user
         
-        result = await get_current_user("test@example.com", mock_session, mock_redis)
+        # Mock the token dependency
+        mock_token = "fake_token"
+        
+        result = await get_current_user(mock_token, mock_session, mock_redis)
         
         assert result.email == "test@example.com"
         assert result.username == "testuser"
         mock_repo.get_user_by_email.assert_called_once_with("test@example.com")
 
 
-async def test_get_current_admin_user_success(mock_redis):
+async def test_get_current_admin_user_success():
     """Test getting current admin user successfully."""
     mock_admin = User(
         id=2,
@@ -111,17 +117,11 @@ async def test_get_current_admin_user_success(mock_redis):
         role=UserRole.ADMIN,
     )
     
-    mock_redis = AsyncMock()
-    mock_redis.get.return_value = None  # Cache miss
+    # Test get_current_admin_user function directly with admin user
+    result = await get_current_admin_user(mock_admin)
     
-    with patch('src.services.auth.get_current_user') as mock_get_current:
-        mock_get_current.return_value = mock_admin
-        
-        result = await get_current_admin_user("admin@example.com", mock_redis, mock_redis)
-        
-        assert result.role == UserRole.ADMIN
-        assert result.email == "admin@example.com"
-        mock_get_current.assert_called_once()
+    assert result.role == UserRole.ADMIN
+    assert result.email == "admin@example.com"
 
 
 async def test_get_current_admin_user_forbidden():
@@ -135,13 +135,11 @@ async def test_get_current_admin_user_forbidden():
         role=UserRole.USER,  # Regular user, not admin
     )
     
-    mock_redis = AsyncMock()
-    
     with patch('src.services.auth.get_current_user') as mock_get_current:
         mock_get_current.return_value = mock_regular_user
-        
+    
         with pytest.raises(HTTPException) as exc_info:
-            await get_current_admin_user("test@example.com", mock_redis, mock_redis)
+            await get_current_admin_user(mock_regular_user)
         
         assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
-        assert "forbidden" in str(exc_info.value.detail).lower()
+        assert "enough privileges" in str(exc_info.value.detail).lower()

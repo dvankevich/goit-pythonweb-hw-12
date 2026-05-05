@@ -12,10 +12,10 @@ from src.config.app_config import settings
 
 logger = logging.getLogger(__name__)
 
-# Визначаємо абсолютний шлях до папки з шаблонами
+# Define absolute path to templates directory
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
-# Конфігурація підключення до поштового сервера
+# Email server configuration
 email_conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
@@ -25,7 +25,7 @@ email_conf = ConnectionConfig(
     MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
     MAIL_STARTTLS=settings.MAIL_STARTTLS,
     MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
-    USE_CREDENTIALS=settings.USE_CREDENTIALS,
+    USE_CREDENTIALS=True,
     VALIDATE_CERTS=settings.VALIDATE_CERTS,
     TEMPLATE_FOLDER=TEMPLATE_DIR,
 )
@@ -79,22 +79,24 @@ async def _send_email_base(
         fm = FastMail(email_conf)
         template_path = TEMPLATE_DIR / template_name
 
-        # --- СЦЕНАРІЙ 1: Шаблон відсутній (Fallback) ---
+        # --- SCENARIO 1: Template missing (Fallback) ---
         if not template_path.exists():
             error_log = f"Template '{template_name}' missing in {TEMPLATE_DIR}."
             logger.error(error_log)
-
-            # Сповіщаємо адміна у фоновому режимі, щоб не затримувати користувача
+            
+            # Notify admin in background mode to not block user
             asyncio.create_task(send_admin_alert(f"{error_log}\nTarget user: {email}"))
-
-            # Формуємо текстову заглушку
+            
+            # Form text fallback
             token = template_context.get("token", "N/A")
             host = template_context.get("host", "#")
             body = (
-                f"Hello {username}!\n\n"
-                f"Please use the following link for {subject}:\n"
-                f"{host}/api/auth/confirm/{token}\n\n"
-                f"If you didn't request this, please ignore this email."
+                f"Hello admin,\n\n"
+                f"Template '{template_name}' is missing on the server.\n\n"
+                f"Target user: {email}\n"
+                f"Token: {token}\n"
+                f"Host: {host}\n\n"
+                f"Please check the server configuration.\n"
             )
 
             message = MessageSchema(
@@ -109,15 +111,15 @@ async def _send_email_base(
             )
             return True
 
-        # --- СЦЕНАРІЙ 2: Все добре, відправляємо HTML ---
+        # --- SCENARIO 2: All good, send HTML ---
         message = MessageSchema(
             subject=subject,
             recipients=[NameEmail(name=username, email=email)],
-            template_body=template_context,
+            body=template_context,
             subtype=MessageType.html,
         )
-        await fm.send_message(message, template_name=template_name)
-        logger.info(f"HTML email '{subject}' successfully sent to {email}")
+        await fm.send_message(message)
+        logger.info(f"Password reset email sent to {email}")
         return True
 
     except ConnectionErrors as err:

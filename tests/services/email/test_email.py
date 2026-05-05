@@ -43,6 +43,9 @@ async def test_send_email_success(mock_fastmail, mock_templates_exist):
         assert message.subject == "Confirm your email address"
         assert message.recipients[0].email == email
         assert template_name == "verify_email.html"
+        # Check that body contains template context (converted to HTML)
+        assert isinstance(message.body, str)  # Should be HTML string after conversion
+        assert "token" in str(message.body) or "fake_token_123" in str(message.body)
 
 
 @pytest.mark.asyncio

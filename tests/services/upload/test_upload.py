@@ -90,4 +90,4 @@ def test_upload_file_exception():
             UploadFileService.upload_file(mock_file, username)
 
         assert exc_info.value.status_code == 500
-        assert "Не вдалося завантажити аватар" in exc_info.value.detail
+        assert "Failed to upload avatar" in exc_info.value.detail
