@@ -30,55 +30,61 @@ async def test_get_all_no_filters(mock_session, test_contact):
     """Test getting all contacts without filters."""
     mock_contacts = [test_contact]
     
-    with patch('src.repositories.contact_repository.get_all') as mock_get_all:
-        mock_get_all.return_value = mock_contacts
-        
-        result = await get_all(mock_session, user_id=1)
-        
-        assert len(result) == 1
-        assert result[0].first_name == "Ivan"
-        mock_get_all.assert_called_once_with(mock_session, user_id=1)
+    # Mock the database execute and scalars
+    mock_result = MagicMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = mock_contacts
+    mock_result.scalars.return_value = mock_scalars
+    mock_session.execute.return_value = mock_result
+    
+    result = await get_all(mock_session, user_id=1)
+    
+    assert len(result) == 1
+    assert result[0].first_name == "Ivan"
+    mock_session.execute.assert_called_once()
 
 
 async def test_get_all_with_filters(mock_session, test_contact):
     """Test getting contacts with filters."""
     mock_contacts = [test_contact]
     
-    with patch('src.repositories.contact_repository.get_all') as mock_get_all:
-        mock_get_all.return_value = mock_contacts
-        
-        result = await get_all(
-            mock_session, 
-            user_id=1,
-            first_name="Ivan",
-            last_name="Ivanov",
-            email="ivan@example.com"
-        )
-        
-        assert len(result) == 1
-        assert result[0].first_name == "Ivan"
-        assert result[0].last_name == "Ivanov"
-        mock_get_all.assert_called_once_with(
-            mock_session, 
-            user_id=1,
-            first_name="Ivan",
-            last_name="Ivanov",
-            email="ivan@example.com"
-        )
+    # Mock the database execute and scalars
+    mock_result = MagicMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = mock_contacts
+    mock_result.scalars.return_value = mock_scalars
+    mock_session.execute.return_value = mock_result
+    
+    result = await get_all(
+        mock_session, 
+        user_id=1,
+        first_name="Ivan",
+        last_name="Ivanov",
+        email="ivan@example.com"
+    )
+    
+    assert len(result) == 1
+    assert result[0].first_name == "Ivan"
+    assert result[0].last_name == "Ivanov"
+    mock_session.execute.assert_called_once()
 
 
 async def test_get_all_upcoming_birthdays(mock_session, test_contact):
     """Test getting contacts with upcoming birthdays."""
     mock_contacts = [test_contact]
     
-    with patch('src.repositories.contact_repository.get_all') as mock_get_all:
-        mock_get_all.return_value = mock_contacts
-        
-        result = await get_all(mock_session, user_id=1, upcoming_birthdays=True)
-        
-        assert len(result) == 1
-        assert result[0].first_name == "Ivan"
-        mock_get_all.assert_called_once_with(mock_session, user_id=1, upcoming_birthdays=True)
+    # Mock the database execute and scalars
+    mock_result = MagicMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = mock_contacts
+    mock_result.scalars.return_value = mock_scalars
+    mock_session.execute.return_value = mock_result
+    
+    result = await get_all(mock_session, user_id=1, upcoming_birthdays=True)
+    
+    assert len(result) == 1
+    assert result[0].first_name == "Ivan"
+    mock_session.execute.assert_called_once()
 
 
 async def test_get_all_upcoming_birthdays_date_logic(mock_date, mock_session):
@@ -98,15 +104,19 @@ async def test_get_all_upcoming_birthdays_date_logic(mock_date, mock_session):
     
     mock_contacts = [contact_with_birthday]
     
-    with patch('src.repositories.contact_repository.get_all') as mock_get_all:
-        mock_get_all.return_value = mock_contacts
-        
-        result = await get_all(mock_session, user_id=1, upcoming_birthdays=True)
-        
-        assert len(result) == 1
-        assert result[0].first_name == "Maria"
-        assert result[0].birthday.month == 1
-        mock_get_all.assert_called_once_with(mock_session, user_id=1, upcoming_birthdays=True)
+    # Mock the database execute and scalars
+    mock_result = MagicMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = mock_contacts
+    mock_result.scalars.return_value = mock_scalars
+    mock_session.execute.return_value = mock_result
+    
+    result = await get_all(mock_session, user_id=1, upcoming_birthdays=True)
+    
+    assert len(result) == 1
+    assert result[0].first_name == "Maria"
+    assert result[0].birthday.month == 1
+    mock_session.execute.assert_called_once()
 
 
 @pytest.fixture

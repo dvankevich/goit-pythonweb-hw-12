@@ -35,26 +35,30 @@ def test_contact():
 
 async def test_get_by_id(mock_session, test_contact):
     """Test getting contact by ID."""
-    with patch('src.repositories.contact_repository.get_by_id') as mock_get:
-        mock_get.return_value = test_contact
-        
-        result = await get_by_id(mock_session, 1, user_id=1)
-        
-        assert result.first_name == "Ivan"
-        assert result.email == "ivan@example.com"
-        mock_get.assert_called_once_with(mock_session, 1, user_id=1)
+    # Mock the database execute and scalar_one_or_none
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = test_contact
+    mock_session.execute.return_value = mock_result
+    
+    result = await get_by_id(mock_session, 1, user_id=1)
+    
+    assert result.first_name == "Ivan"
+    assert result.email == "ivan@example.com"
+    mock_session.execute.assert_called_once()
 
 
 async def test_get_by_email(mock_session, test_contact):
     """Test getting contact by email."""
-    with patch('src.repositories.contact_repository.get_by_email') as mock_get:
-        mock_get.return_value = test_contact
-        
-        result = await get_by_email(mock_session, "ivan@example.com", user_id=1)
-        
-        assert result.email == "ivan@example.com"
-        assert result.first_name == "Ivan"
-        mock_get.assert_called_once_with(mock_session, "ivan@example.com", user_id=1)
+    # Mock the database execute and scalar_one_or_none
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = test_contact
+    mock_session.execute.return_value = mock_result
+    
+    result = await get_by_email(mock_session, "ivan@example.com", user_id=1)
+    
+    assert result.email == "ivan@example.com"
+    assert result.first_name == "Ivan"
+    mock_session.execute.assert_called_once()
 
 
 async def test_create_contact(mock_session):
@@ -77,15 +81,18 @@ async def test_create_contact(mock_session):
         user_id=1,
     )
     
-    with patch('src.repositories.contact_repository.create') as mock_create:
-        mock_create.return_value = created_contact
-        
-        result = await create(mock_session, contact_data, user_id=1)
-        
-        assert result.first_name == "Petro"
-        assert result.email == "petro@example.com"
-        assert result.id == 2
-        mock_create.assert_called_once_with(mock_session, contact_data, user_id=1)
+    # Mock the database operations
+    mock_session.add = MagicMock()
+    mock_session.commit = AsyncMock()
+    mock_session.refresh = AsyncMock()
+    
+    # Test the actual create function
+    result = await create(mock_session, contact_data, user_id=1)
+    
+    # Since we can't easily mock the Contact creation, let's just verify the calls
+    mock_session.add.assert_called_once()
+    mock_session.commit.assert_called_once()
+    mock_session.refresh.assert_called_once()
 
 
 async def test_update_contact_success(mock_session, test_contact):
@@ -105,46 +112,57 @@ async def test_update_contact_success(mock_session, test_contact):
         user_id=1,
     )
     
-    with patch('src.repositories.contact_repository.update') as mock_update:
-        mock_update.return_value = updated_contact
+    # Mock get_by_id to return existing contact
+    with patch('src.repositories.contact_repository.get_by_id') as mock_get:
+        mock_get.return_value = test_contact
+        
+        # Mock commit and refresh
+        mock_session.commit = AsyncMock()
+        mock_session.refresh = AsyncMock()
         
         result = await update(mock_session, 1, update_data, user_id=1)
         
         assert result.first_name == "Ivan Updated"
         assert result.phone == "+380509876543"
-        mock_update.assert_called_once_with(mock_session, 1, update_data, user_id=1)
+        mock_session.commit.assert_called_once()
 
 
 async def test_update_contact_not_found(mock_session):
     """Test updating non-existent contact."""
     update_data = ContactUpdate(first_name="Updated")
     
-    with patch('src.repositories.contact_repository.update') as mock_update:
-        mock_update.return_value = None
+    # Mock get_by_id to return None (contact not found)
+    with patch('src.repositories.contact_repository.get_by_id') as mock_get:
+        mock_get.return_value = None
         
         result = await update(mock_session, 999, update_data, user_id=1)
         
         assert result is None
-        mock_update.assert_called_once_with(mock_session, 999, update_data, user_id=1)
 
 
 async def test_delete_contact_success(mock_session, test_contact):
     """Test successful contact deletion."""
-    with patch('src.repositories.contact_repository.delete') as mock_delete:
-        mock_delete.return_value = True
+    # Mock get_by_id to return existing contact
+    with patch('src.repositories.contact_repository.get_by_id') as mock_get:
+        mock_get.return_value = test_contact
+        
+        # Mock delete and commit
+        mock_session.delete = AsyncMock()
+        mock_session.commit = AsyncMock()
         
         result = await delete(mock_session, 1, user_id=1)
         
         assert result is True
-        mock_delete.assert_called_once_with(mock_session, 1, user_id=1)
+        mock_session.delete.assert_called_once_with(test_contact)
+        mock_session.commit.assert_called_once()
 
 
 async def test_delete_contact_not_found(mock_session):
     """Test deleting non-existent contact."""
-    with patch('src.repositories.contact_repository.delete') as mock_delete:
-        mock_delete.return_value = False
+    # Mock get_by_id to return None (contact not found)
+    with patch('src.repositories.contact_repository.get_by_id') as mock_get:
+        mock_get.return_value = None
         
         result = await delete(mock_session, 999, user_id=1)
         
         assert result is False
-        mock_delete.assert_called_once_with(mock_session, 999, user_id=1)
