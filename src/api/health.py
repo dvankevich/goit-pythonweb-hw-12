@@ -13,6 +13,17 @@ router = APIRouter(tags=["system"])
 
 @router.get("/healthcheck")
 async def healthcheck(db: AsyncSession = Depends(get_db)):
+    """Check system health including database and Redis connectivity.
+    
+    Args:
+        db: Async database session.
+    
+    Returns:
+        dict: Health status information.
+    
+    Raises:
+        HTTPException: If database is disconnected.
+    """
     health_status = {"status": "ok", "database": "connected", "redis": "connected"}
 
     try:

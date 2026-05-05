@@ -28,6 +28,20 @@ async def register_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    """Register a new user.
+    
+    Args:
+        user_data: User registration data including email, username, and password.
+        background_tasks: FastAPI background tasks for email verification.
+        request: HTTP request object for base URL extraction.
+        db: Async database session.
+    
+    Returns:
+        User: The newly created user object.
+    
+    Raises:
+        HTTPException: If user with email or username already exists.
+    """
     user_service = UserService(db)
 
     email_user = await user_service.get_user_by_email(user_data.email)
@@ -58,6 +72,18 @@ async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),  # 3. Вказуємо тип AsyncSession
 ):
+    """Authenticate user and return access token.
+    
+    Args:
+        form_data: OAuth2 password request form with username and password.
+        db: Async database session.
+    
+    Returns:
+        Token: JWT access token with token type.
+    
+    Raises:
+        HTTPException: If credentials are invalid or email not confirmed.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_username(form_data.username)
 
@@ -79,6 +105,18 @@ async def login_user(
 
 @router.get("/confirmed_email/{token}")
 async def confirmed_email(token: str, db: AsyncSession = Depends(get_db)):
+    """Confirm user email using verification token.
+    
+    Args:
+        token: Email verification token.
+        db: Async database session.
+    
+    Returns:
+        dict: Confirmation message.
+    
+    Raises:
+        HTTPException: If token is invalid or user not found.
+    """
     email = await get_email_from_token(token)
     user_service = UserService(db)
     user = await user_service.get_user_by_email(email)
@@ -100,6 +138,19 @@ async def request_email(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    """Request email verification for existing user.
+    
+    Rate limited to 3 requests per minute to prevent abuse.
+    
+    Args:
+        body: Request body containing user email.
+        background_tasks: FastAPI background tasks for email sending.
+        request: HTTP request object for base URL extraction.
+        db: Async database session.
+    
+    Returns:
+        dict: Generic message about email verification.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
 
@@ -129,6 +180,19 @@ async def forgot_password(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    """Request password reset email.
+    
+    Rate limited to 3 requests per minute to prevent abuse.
+    
+    Args:
+        body: Request body containing user email.
+        background_tasks: FastAPI background tasks for email sending.
+        request: HTTP request object for base URL extraction.
+        db: Async database session.
+    
+    Returns:
+        dict: Message about password reset instructions.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
 
@@ -147,6 +211,19 @@ async def forgot_password(
 async def reset_password(
     token: str, body: ResetPassword, db: AsyncSession = Depends(get_db)
 ):
+    """Reset user password using reset token.
+    
+    Args:
+        token: Password reset token.
+        body: Request body containing new password.
+        db: Async database session.
+    
+    Returns:
+        dict: Success message.
+    
+    Raises:
+        HTTPException: If token is invalid or user not found.
+    """
     # Дістаємо email з токена
     email = await get_email_from_token(token)
 

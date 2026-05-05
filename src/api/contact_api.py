@@ -16,6 +16,19 @@ async def create_contact(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),  # Отримуємо поточного користувача
 ):
+    """Create a new contact for the authenticated user.
+    
+    Args:
+        contact: Contact data to create.
+        db: Async database session.
+        current_user: Authenticated user instance.
+    
+    Returns:
+        ContactResponse: The newly created contact.
+    
+    Raises:
+        HTTPException: If contact with same email already exists.
+    """
     existing_contact = await contact_repository.get_by_email(
         db, email=contact.email, user_id=current_user.id
     )
@@ -40,6 +53,19 @@ async def read_contacts(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Get all contacts for the authenticated user with optional filtering.
+    
+    Args:
+        first_name: Filter contacts by first name.
+        last_name: Filter contacts by last name.
+        email: Filter contacts by email.
+        upcoming_birthdays: Filter contacts with birthdays in next 7 days.
+        db: Async database session.
+        current_user: Authenticated user instance.
+    
+    Returns:
+        List[ContactResponse]: List of contacts matching the criteria.
+    """
     contacts = await contact_repository.get_all(
         db,
         user_id=current_user.id,
@@ -57,6 +83,19 @@ async def read_contact(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Get a specific contact by ID.
+    
+    Args:
+        contact_id: ID of the contact to retrieve.
+        db: Async database session.
+        current_user: Authenticated user instance.
+    
+    Returns:
+        ContactResponse: The requested contact.
+    
+    Raises:
+        HTTPException: If contact not found or access denied.
+    """
     contact = await contact_repository.get_by_id(
         db, contact_id, user_id=current_user.id
     )
@@ -74,6 +113,20 @@ async def update_contact(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Update a specific contact.
+    
+    Args:
+        contact_id: ID of the contact to update.
+        body: Updated contact data.
+        db: Async database session.
+        current_user: Authenticated user instance.
+    
+    Returns:
+        ContactResponse: The updated contact.
+    
+    Raises:
+        HTTPException: If contact not found, access denied, or email conflict.
+    """
     if body.email:
         existing_contact = await contact_repository.get_by_email(
             db, email=body.email, user_id=current_user.id
@@ -104,6 +157,19 @@ async def delete_contact(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Delete a specific contact.
+    
+    Args:
+        contact_id: ID of the contact to delete.
+        db: Async database session.
+        current_user: Authenticated user instance.
+    
+    Returns:
+        None: Success response with no content.
+    
+    Raises:
+        HTTPException: If contact not found or access denied.
+    """
     success = await contact_repository.delete(db, contact_id, user_id=current_user.id)
 
     if not success:
