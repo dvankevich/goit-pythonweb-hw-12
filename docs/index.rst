@@ -5,19 +5,17 @@ Contacts Management API (FastAPI) documentation
    :maxdepth: 2
    :caption: Contents:
 
+   modules/contacts
+   modules/users
+
 CM API main
-===================
+===========
 .. automodule:: main
   :members:
   :undoc-members:
   :show-inheritance:
 
-CM API repository Contacts
-==========================
-.. automodule:: src.repositories.contact_repository
-  :members:
-  :undoc-members:
-  :show-inheritance:
+
 
 Indices and tables
 ==================

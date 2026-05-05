@@ -37,9 +37,13 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-# html_theme = "alabaster"
+html_theme = "furo"  # poetry add furo --group dev
+# html_theme = "sphinx_rtd_theme" # poetry add sphinx-rtd-theme --group dev
+# built in themes
+# html_theme = "alabaster" # default
 # html_theme = "nature"
 # html_theme = "traditional"
-#html_theme = "bizstyle" #
-html_theme = 'pyramid'
+# html_theme = "bizstyle" #
+# html_theme = 'pyramid'
+
 html_static_path = ["_static"]
