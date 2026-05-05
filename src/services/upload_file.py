@@ -9,14 +9,17 @@ logger = logging.getLogger(__name__)
 
 
 class UploadFileService:
-    """
-    Сервіс для завантаження файлів в Cloudinary.
+    """Service for uploading files to Cloudinary.
+    
+    Handles avatar uploads with automatic optimization and
+    provides secure file storage capabilities.
     """
 
     def __init__(self):
-        """
-        Ініціалізуємо Cloudinary один раз при створенні сервісу.
-        Використовуємо розпакований SecretStr для api_secret.
+        """Initialize Cloudinary configuration.
+        
+        Sets up Cloudinary credentials and configures the service
+        for secure file uploads.
         """
         self.cloud_name = settings.CLD_NAME
         self.api_key = settings.CLD_API_KEY
@@ -34,9 +37,17 @@ class UploadFileService:
 
     @staticmethod
     def upload_file(file, username: str) -> str:
-        """
-        Завантажує аватар користувача в Cloudinary.
-        Повертає URL оптимізованого зображення (250x250).
+        """Upload user avatar to Cloudinary.
+        
+        Args:
+            file: The file object to upload.
+            username: Username for the public ID.
+        
+        Returns:
+            str: URL of the optimized image (250x250).
+        
+        Raises:
+            HTTPException: If upload fails.
         """
         try:
             public_id = f"RestApp/{username}"

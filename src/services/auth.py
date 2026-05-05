@@ -18,12 +18,34 @@ from src.models.user import User, UserRole
 
 
 class Hash:
+    """Utility class for password hashing and verification.
+    
+    Provides methods to hash passwords using bcrypt and verify
+    password hashes against plain text passwords.
+    """
     def verify_password(self, plain_password: str, hashed_password: str):
+        """Verify a plain password against a hashed password.
+        
+        Args:
+            plain_password: The plain text password to verify.
+            hashed_password: The bcrypt hashed password to verify against.
+        
+        Returns:
+            bool: True if the password matches, False otherwise.
+        """
         password_byte = plain_password.encode("utf-8")
         hashed_byte = hashed_password.encode("utf-8")
         return bcrypt.checkpw(password_byte, hashed_byte)
 
     def get_password_hash(self, password: str):
+        """Hash a plain text password using bcrypt.
+        
+        Args:
+            password: The plain text password to hash.
+        
+        Returns:
+            str: The bcrypt hashed password as a string.
+        """
         # Обрізаємо до 72 байт для безпеки bcrypt
         password_byte = password.encode("utf-8")[:72]
         salt = bcrypt.gensalt()
@@ -38,7 +60,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 async def create_access_token(data: dict, expires_delta: Optional[int] = None):
-    """Створення access токена для авторизації"""
+    """Create an access token for authentication.
+    
+    Args:
+        data: Dictionary containing data to encode in the token.
+        expires_delta: Optional custom expiration time in seconds.
+    
+    Returns:
+        str: JWT access token.
+    """
     to_encode = data.copy()
 
     if expires_delta:
@@ -56,7 +86,14 @@ async def create_access_token(data: dict, expires_delta: Optional[int] = None):
 
 
 def create_email_token(data: dict):
-    """Створення токена для підтвердження email"""
+    """Create a token for email confirmation.
+    
+    Args:
+        data: Dictionary containing data to encode in the token.
+    
+    Returns:
+        str: JWT token for email confirmation.
+    """
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=7)
     to_encode.update({"iat": datetime.now(UTC), "exp": expire})
@@ -69,7 +106,17 @@ def create_email_token(data: dict):
 
 
 async def get_email_from_token(token: str):
-    """Отримання email з токена підтвердження"""
+    """Extract email from email confirmation token.
+    
+    Args:
+        token: JWT token for email confirmation.
+    
+    Returns:
+        str: Email address extracted from the token.
+    
+    Raises:
+        HTTPException: If token is invalid or email is not found.
+    """
     try:
         secret_key = settings.JWT_SECRET.get_secret_value()
 
@@ -91,6 +138,18 @@ async def get_email_from_token(token: str):
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
 ):
+    """Get the current authenticated user from JWT token.
+    
+    Args:
+        token: JWT access token from the request header.
+        db: Database session dependency.
+    
+    Returns:
+        User: The authenticated user object.
+    
+    Raises:
+        HTTPException: If token is invalid or user not found.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -156,6 +215,17 @@ async def get_current_user(
 
 
 async def get_current_admin_user(current_user: User = Depends(get_current_user)):
+    """Get the current user and verify they have admin privileges.
+    
+    Args:
+        current_user: The authenticated user from get_current_user dependency.
+    
+    Returns:
+        User: The admin user object.
+    
+    Raises:
+        HTTPException: If user does not have admin role.
+    """
     # Перевіряємо, чи роль об'єкта збігається з ADMIN
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(

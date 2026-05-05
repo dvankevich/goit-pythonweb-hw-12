@@ -32,9 +32,12 @@ email_conf = ConnectionConfig(
 
 
 async def send_admin_alert(error_details: str):
-    """
-    Термінове сповіщення адміністратора про технічні несправності сервісу.
-    Використовує простий текст для максимальної надійності.
+    """Send urgent notification to administrator about technical service failures.
+    
+    Uses plain text for maximum reliability.
+    
+    Args:
+        error_details: Technical error details to report to admin.
     """
     try:
         admin_recipient = NameEmail(name="System Admin", email=settings.ADMIN_EMAIL)
@@ -57,10 +60,20 @@ async def _send_email_base(
     template_name: str,
     template_context: dict,
 ) -> bool:
-    """
-    Базова функція відправки.
-    Якщо HTML-шаблон відсутній, автоматично відправляє текстову заглушку
-    та сповіщає адміністратора про проблему.
+    """Base email sending function with fallback mechanism.
+    
+    If HTML template is missing, automatically sends text fallback
+    and notifies administrator about the issue.
+    
+    Args:
+        email: Recipient email address.
+        username: Recipient username.
+        subject: Email subject line.
+        template_name: Name of the HTML template file.
+        template_context: Context variables for template rendering.
+    
+    Returns:
+        bool: True if email sent successfully, False otherwise.
     """
     try:
         fm = FastMail(email_conf)
@@ -116,7 +129,13 @@ async def _send_email_base(
 
 
 async def send_verification_email(email: EmailStr, username: str, host: str):
-    """Публічний метод для верифікації нового користувача"""
+    """Send email verification email to new user.
+    
+    Args:
+        email: User's email address.
+        username: User's username.
+        host: Base URL for verification link.
+    """
     token = create_email_token({"sub": email})
     context = {
         "host": host,
@@ -133,7 +152,13 @@ async def send_verification_email(email: EmailStr, username: str, host: str):
 
 
 async def send_reset_password_email(email: EmailStr, username: str, host: str):
-    """Публічний метод для скидання пароля"""
+    """Send password reset email to user.
+    
+    Args:
+        email: User's email address.
+        username: User's username.
+        host: Base URL for password reset link.
+    """
     token = create_email_token({"sub": email})
     context = {
         "host": host,

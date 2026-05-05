@@ -8,6 +8,7 @@ Contacts Management API (FastAPI) documentation
    repositories/index
    models/index
    schemas/index
+   services/index
 
 CM API main
 ===========
