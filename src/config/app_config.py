@@ -221,7 +221,7 @@ def display_all_settings() -> None:
     print("=" * 70)
     
     # Automatically get all field names from Settings class
-    field_names = [field_name for field_name in settings.model_fields.keys()]
+    field_names = [field_name for field_name in Settings.model_fields.keys()]
     
     for field_name in field_names:
         value = getattr(settings, field_name)
