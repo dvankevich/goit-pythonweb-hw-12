@@ -1,3 +1,34 @@
+"""Contacts Management API - FastAPI Application.
+
+This module contains the main FastAPI application for the Contacts Management System.
+It provides RESTful endpoints for managing contacts, user authentication,
+and administrative functions with proper security, rate limiting, and CORS support.
+
+Features:
+- User authentication with JWT tokens
+- Contact CRUD operations with filtering and search
+- Rate limiting to prevent abuse
+- Redis caching for performance
+- Email verification and password reset
+- Avatar upload with Cloudinary integration
+- Health monitoring endpoints
+- Comprehensive error handling
+- OpenAPI/Swagger documentation
+
+Security:
+- JWT-based authentication
+- Rate limiting with SlowAPI
+- CORS middleware for cross-origin requests
+- Secret management with Pydantic SecretStr
+
+Architecture:
+- Async/await support throughout
+- Dependency injection for database sessions
+- Middleware for CORS and rate limiting
+- Structured error handling
+- Lifecycle management for Redis connections
+"""
+
 import uvicorn
 import logging
 from contextlib import asynccontextmanager
@@ -22,6 +53,18 @@ logging.basicConfig(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Manage application lifecycle events.
+    
+    Handles startup and shutdown events for the FastAPI application.
+    On startup, initializes Redis connection if enabled.
+    On shutdown, properly closes Redis connection.
+    
+    Args:
+        app: FastAPI application instance.
+    
+    Yields:
+        None: Control is yielded to the application for normal operation.
+    """
     # Код, який виконується ПРИ ЗАПУСКУ
     if settings.ENABLE_REDIS:
         is_connected = await check_redis_connection()
@@ -42,8 +85,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Contacts API",
+    description="RESTful API for managing contacts with user authentication",
+    version="1.0.0",
     lifespan=lifespan,
-    # title="Contacts API", swagger_ui_parameters={"defaultModelsExpandDepth": -1} # щоб прибрати схему
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 app.state.limiter = limiter
 
@@ -60,6 +106,17 @@ app.add_middleware(
 
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Handle rate limit exceeded errors.
+    
+    Provides user-friendly error messages when rate limits are exceeded.
+    
+    Args:
+        request: HTTP request object.
+        exc: Rate limit exceeded exception.
+    
+    Returns:
+        JSONResponse: Error response with 429 status code.
+    """
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={"error": "Перевищено ліміт запитів. Спробуйте пізніше."},
@@ -72,10 +129,23 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 
 
-@app.get("/")
+@app.get("/",
+         summary="Root endpoint",
+         description="Returns welcome message and documentation link",
+         tags=["General"])
 def root():
+    """Root endpoint providing API information.
+    
+    Returns:
+        dict: Welcome message with documentation link.
+    """
     return {"message": "Welcome to Contacts API. Go to /docs for Swagger UI."}
 
 
 if __name__ == "__main__":
+    """Run the FastAPI application with uvicorn.
+    
+    Starts the development server on all interfaces (0.0.0.0) on port 8000.
+    This allows external access to the API during development.
+    """
     uvicorn.run(app, host="0.0.0.0", port=8000)

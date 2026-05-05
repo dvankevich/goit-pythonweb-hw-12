@@ -157,12 +157,159 @@ docker-compose logs -f app
 
 ---
 
-## run tests
+## 🚀 Production Deployment (Debian/Ubuntu)
+
+### Prerequisites
+* **Debian 11+** or **Ubuntu 20.04+**
+* **Docker & Docker Compose** (latest versions)
+* **Python 3.13+** (if running locally)
+* **Poetry** (for dependency management)
+* **PostgreSQL 15+** (if not using Docker)
+* **Nginx** (recommended for reverse proxy)
+
+### 1. Server Preparation
 ```bash
-export PYTHONPATH=$PYTHONPATH:.
-pytest --cov=src --cov-report=term-missing # run all tests
+# Update system packages
+sudo apt update && sudo apt upgrade -y
 
-pytest --cov=src --cov-report=html # run tests and generate HTML report 
+# Install Docker and Docker Compose
+sudo apt install -y docker.io docker-compose-plugin
 
-pytest --cov=src.api.auth --cov-report=term-missing tests/test_api_auth.py # run test module
+# Add user to docker group (logout and login after)
+sudo usermod -aG docker $USER
+
+# Install Python and Poetry (for local management)
+sudo apt install -y python3.13 python3.13-venv python3-pip
+curl -sSL https://install.python-poetry.org | python3 -
+sudo mv poetry /usr/local/bin/
+
+# Install Nginx (optional, recommended)
+sudo apt install -y nginx
 ```
+
+### 2. Application Deployment
+```bash
+# Clone repository
+git clone <your-repo-url>
+cd goit-pythonweb-hw-12
+
+# Configure production environment
+cp .env.example .env
+nano .env  # Edit with production values
+
+# Build and start services
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Verify deployment
+docker-compose ps
+docker-compose logs -f app
+```
+
+### 3. Nginx Configuration (Optional)
+Create `/etc/nginx/sites-available/contacts-api`:
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Enable site:
+```bash
+sudo ln -s /etc/nginx/sites-available/contacts-api /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 4. SSL Certificate (Let's Encrypt)
+```bash
+# Install Certbot
+sudo apt install -y certbot python3-certbot-nginx
+
+# Obtain certificate
+sudo certbot --nginx -d your-domain.com
+
+# Auto-renewal (add to crontab)
+echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
+```
+
+### 5. Monitoring and Logs
+```bash
+# View application logs
+docker-compose logs -f app
+
+# Check system resources
+docker stats
+
+# Monitor database
+docker exec -it contacts_postgres_db psql -U postgres -d contacts_db -c "SELECT COUNT(*) FROM contacts;"
+```
+
+### 6. Backup Strategy
+```bash
+# Database backup
+docker exec contacts_postgres_db pg_dump -U postgres contacts_db > backup_$(date +%Y%m%d).sql
+
+# Application data backup
+docker run --rm -v contacts_uploads:/data -v $(pwd):/backup alpine tar czf /backup/uploads_$(date +%Y%m%d).tar.gz -C /data .
+```
+
+---
+
+## 🧪 Testing
+
+For comprehensive testing instructions, see [TESTING.md](TESTING.md).
+
+---
+
+## 📚 Documentation
+
+* **API Documentation**: Available at `/docs` endpoint (Swagger UI)
+* **ReDoc Documentation**: Available at `/redoc` endpoint
+* **Generated Documentation**: See `docs/` directory for Sphinx-generated docs
+
+---
+
+## 📞 Support & Troubleshooting
+
+### Common Issues
+* **Database Connection**: Check PostgreSQL status and credentials
+* **Redis Connection**: Verify Redis is running and accessible
+* **CORS Errors**: Ensure `CORS_ALLOWED_ORIGINS` includes your domain
+* **Rate Limiting**: Check `ENABLE_REDIS` and Redis connectivity
+
+### Health Checks
+```bash
+# Application health
+curl http://localhost:8000/healthcheck
+
+# Database health
+docker exec contacts_postgres_db pg_isready -U postgres
+
+# Redis health (if enabled)
+docker exec contacts_redis redis-cli ping
+```
+
+### Log Analysis
+```bash
+# Error patterns
+docker-compose logs app | grep ERROR
+
+# Performance monitoring
+docker-compose logs app | grep "slow\|timeout\|exception"
+```
+
+---
+
+## 📄 Additional Files
+
+* **[DEPLOYMENT.md](DEPLOYMENT.md)**: Detailed deployment guide
+* **[TESTING.md](TESTING.md)**: Comprehensive testing instructions
+* **[API.md](API.md)**: API endpoint documentation
