@@ -36,6 +36,7 @@ class User(Base):
         confirmed: Whether the user's email has been confirmed.
         role: User role (user or admin).
         contacts: Relationship to user's contacts.
+        __tablename__: Database table name for users.
     """
     __tablename__ = "users"
 
@@ -52,6 +53,12 @@ class User(Base):
     contacts: Mapped[List["Contact"]] = relationship(
         "Contact", back_populates="user", cascade="all, delete-orphan"
     )
+    
+    # SQLAlchemy table arguments (empty dict for default behavior)
+    __table_args__ = {"extend_existing": True}
+    
+    # SQLAlchemy mapper arguments (empty dict for default behavior)
+    __mapper_args__ = {}
     
     def __repr__(self) -> str:
         """Return a string representation of the User.

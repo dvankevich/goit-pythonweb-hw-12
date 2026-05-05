@@ -11,6 +11,7 @@ import os
 
 sys.path.append(os.path.abspath(".."))
 
+
 project = "Contacts Management API (FastAPI)"
 copyright = "2026, dvankevich"
 author = "dvankevich"
@@ -32,6 +33,14 @@ napoleon_use_rtype = True
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+# Source directory for Sphinx (explicitly set to current directory)
+source_suffix = {
+    '.rst': None,
+}
+
+# Ensure proper source directory handling
+master_doc = "index"
 
 
 # -- Options for HTML output -------------------------------------------------

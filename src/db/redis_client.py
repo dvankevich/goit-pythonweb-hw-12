@@ -24,9 +24,13 @@ redis_client = redis.Redis(connection_pool=pool)
 
 
 async def check_redis_connection() -> bool:
-    """
-    Перевірка з'єднання з жорстким зовнішнім таймаутом.
-    Навіть якщо DNS або TCP затримаються, asyncio.wait_for перерве виконання.
+    """Check Redis connection with hard external timeout.
+    
+    Even if DNS or TCP are delayed, asyncio.wait_for will
+    interrupt execution to prevent hanging.
+    
+    Returns:
+        bool: True if Redis connection is successful, False otherwise.
     """
     if not settings.ENABLE_REDIS:
         return False
@@ -43,12 +47,20 @@ async def check_redis_connection() -> bool:
 
 
 async def get_redis():
-    """Повертає клієнт Redis (для FastAPI Dependency Injection)"""
+    """Return Redis client for FastAPI Dependency Injection.
+    
+    Returns:
+        Redis: The Redis client instance.
+    """
     return redis_client
 
 
 async def invalidate_cache(key: str):
-    """Видаляє запис із кешу при оновленні даних"""
+    """Delete record from cache when data is updated.
+    
+    Args:
+        key: The cache key to invalidate.
+    """
     if settings.ENABLE_REDIS:
         try:
             # Додаємо логування перед видаленням

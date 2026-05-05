@@ -5,6 +5,7 @@ Contacts Management API (FastAPI) documentation
    :maxdepth: 2
    :caption: Contents:
 
+   db/index
    repositories/index
    models/index
    schemas/index

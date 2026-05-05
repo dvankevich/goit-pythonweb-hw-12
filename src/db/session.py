@@ -14,6 +14,11 @@ SessionLocal = async_sessionmaker(
 
 
 async def get_db():
+    """Get database session for FastAPI dependency injection.
+    
+    Yields:
+        AsyncSession: Database session that is automatically closed.
+    """
     async with SessionLocal() as session:
         try:
             yield session

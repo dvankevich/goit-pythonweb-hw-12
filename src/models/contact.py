@@ -25,6 +25,7 @@ class Contact(Base):
         phone: Phone number of the contact.
         birthday: Birthday of the contact.
         additional_info: Additional information about the contact.
+        __tablename__: Database table name for contacts.
     """
     __tablename__ = "contacts"
 
@@ -39,6 +40,11 @@ class Contact(Base):
     phone: Mapped[str] = mapped_column(String(20))
     birthday: Mapped[date] = mapped_column(Date)
     additional_info: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    # SQLAlchemy table arguments
+    __table_args__ = {"extend_existing": True}
+    # SQLAlchemy mapper arguments (empty dict for default behavior)
+    __mapper_args__ = {}
     
     def __repr__(self) -> str:
         """Return a string representation of the Contact.
