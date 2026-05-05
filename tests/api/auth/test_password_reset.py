@@ -57,7 +57,7 @@ def test_forgot_password_success(client):
     )
 
     assert response.status_code == 200
-    assert "email sent" in response.json()["message"].lower()
+    assert "if your address is in our database, you will receive an email with password reset instructions." in response.json()["message"].lower()
 
 
 def test_forgot_password_not_found(client):
@@ -67,8 +67,9 @@ def test_forgot_password_not_found(client):
         json={"email": "nonexistent@example.com"},
     )
 
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    # API повертає 200 для захисту від енумерації
+    assert response.status_code == 200
+    assert "if your address is in our database, you will receive an email with password reset instructions." in response.json()["message"].lower()
 
 
 def test_forgot_password_branches(client):
@@ -92,7 +93,7 @@ def test_reset_password_success(mock_get_email, client, mock_redis):
     )
 
     assert response.status_code == 200
-    assert "пароль успішно змінено" in response.json()["message"].lower()
+    assert "password successfully changed" in response.json()["message"].lower()
 
 
 def test_reset_password_user_not_found(mock_get_email, client):
@@ -104,8 +105,9 @@ def test_reset_password_user_not_found(mock_get_email, client):
         json={"new_password": "newpassword123"},
     )
 
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    # API повертає 400 з помилкою верифікації для захисту від енумерації
+    assert response.status_code == 400
+    assert "invalid token or user not found" in response.json()["detail"].lower()
 
 
 def test_reset_password_user_not_found_logic(mock_get_email, client):
@@ -117,7 +119,8 @@ def test_reset_password_user_not_found_logic(mock_get_email, client):
         json={"new_password": "newpassword123"},
     )
 
-    assert response.status_code == 404
+    # API повертає 400 з помилкою верифікації для захисту від енумерації
+    assert response.status_code == 400
 
 
 def test_reset_password_full_flow(mock_get_email, client, mock_redis):
@@ -137,7 +140,7 @@ def test_reset_password_full_flow(mock_get_email, client, mock_redis):
         json={"new_password": "newpassword123"},
     )
     assert response2.status_code == 200
-    assert "пароль успішно змінено" in response2.json()["message"].lower()
+    assert "password successfully changed" in response2.json()["message"].lower()
 
 
 async def test_reset_password_user_missing(mock_get_email, client):
@@ -149,5 +152,6 @@ async def test_reset_password_user_missing(mock_get_email, client):
         json={"new_password": "newpassword123"},
     )
 
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    # API повертає 400 з помилкою верифікації для захисту від енумерації
+    assert response.status_code == 400
+    assert "invalid token or user not found" in response.json()["detail"].lower()

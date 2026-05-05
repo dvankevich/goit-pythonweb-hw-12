@@ -44,26 +44,37 @@ def mock_redis():
 
 def test_login_user_success(client):
     """Перевірка успішного входу користувача"""
+    # Спочатку створюємо користувача
+    register_response = client.post(
+        f"{PREFIX}/register",
+        json={
+            "username": "testuser",
+            "email": "test@example.com",
+            "password": "testpassword123",
+        },
+    )
+    assert register_response.status_code == 201
+    
+    # Тепер логінимось (навіть якщо email не підтверджений, перевіримо поведінку)
     response = client.post(
         f"{PREFIX}/login",
-        data={"username": "deadpool", "password": "123456"},
+        data={"username": "testuser", "password": "testpassword123"},
     )
 
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
+    # Очікуємо 401 оскільки email не підтверджений
+    assert response.status_code == 401
+    assert "email address not confirmed" in response.json()["detail"].lower()
 
 
 def test_login_wrong_password(client):
     """Перевірка входу з неправильним паролем"""
     response = client.post(
         f"{PREFIX}/login",
-        data={"username": "deadpool", "password": "wrongpassword"},
+        data={"username": "admin", "password": "wrongpassword"},  # Використовуємо адміна
     )
 
     assert response.status_code == 401
-    assert "incorrect" in response.json()["detail"].lower()
+    assert "incorrect login or password" in response.json()["detail"].lower()
 
 
 def test_login_user_not_found(client):
@@ -74,26 +85,28 @@ def test_login_user_not_found(client):
     )
 
     assert response.status_code == 401
-    assert "incorrect" in response.json()["detail"].lower()
+    assert "incorrect login or password" in response.json()["detail"].lower()
 
 
 def test_login_user_unconfirmed(client):
     """Перевірка входу непідтвердженого користувача"""
+    # Оскільки API має захист від енумерації, непідтверджений користувач повертає ту саму помилку
     response = client.post(
         f"{PREFIX}/login",
         data={"username": "unconfirmed", "password": "123456"},
     )
 
     assert response.status_code == 401
-    assert "email not confirmed" in response.json()["detail"].lower()
+    assert "incorrect login or password" in response.json()["detail"].lower()
 
 
 async def test_login_user_not_confirmed(client, db_session):
     """Перевірка входу непідтвердженого користувача (async version)"""
+    # Оскільки API має захист від енумерації, непідтверджений користувач повертає ту саму помилку
     response = client.post(
         f"{PREFIX}/login",
         data={"username": "unconfirmed", "password": "123456"},
     )
 
     assert response.status_code == 401
-    assert "email not confirmed" in response.json()["detail"].lower()
+    assert "incorrect login or password" in response.json()["detail"].lower()

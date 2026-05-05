@@ -20,7 +20,7 @@ from src.services.email import send_verification_email, send_reset_password_emai
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-# Реєстрація користувача
+# User registration
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
 async def register_user(
     user_data: UserCreate,
@@ -48,14 +48,14 @@ async def register_user(
     if email_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Користувач з таким email вже існує",
+            detail="User with this email already exists",
         )
 
     username_user = await user_service.get_user_by_username(user_data.username)
     if username_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Користувач з таким іменем вже існує",
+            detail="User with this username already exists",
         )
 
     user_data.password = Hash().get_password_hash(user_data.password)
@@ -70,7 +70,7 @@ async def register_user(
 @router.post("/login", response_model=Token)
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),  # 3. Вказуємо тип AsyncSession
+    db: AsyncSession = Depends(get_db),  # Specify AsyncSession type
 ):
     """Authenticate user and return access token.
     
@@ -90,13 +90,13 @@ async def login_user(
     if not user or not Hash().verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неправильний логін або пароль",
+            detail="Incorrect login or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     if not user.confirmed:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Електронна адреса не підтверджена",
+            detail="Email address not confirmed",
         )
 
     access_token = await create_access_token(data={"sub": user.username})
@@ -125,9 +125,9 @@ async def confirmed_email(token: str, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Verification error"
         )
     if user.confirmed:
-        return {"message": "Ваша електронна пошта вже підтверджена"}
+        return {"message": "Your email address is already confirmed"}
     await user_service.confirmed_email(email)
-    return {"message": "Електронну пошту підтверджено"}
+    return {"message": "Email address confirmed"}
 
 
 @router.post("/request_email")
@@ -154,9 +154,9 @@ async def request_email(
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
 
-    # Щоб запобігти енумерації повертаємо одне повідомлення для всії випадків
+    # To prevent enumeration, return the same message for all cases
     generic_message = {
-        "message": "Якщо ваша адреса є у нашій базі, ви отримаєте лист для підтвердження протягом кількох хвилин."
+        "message": "If your address is in our database, you will receive a confirmation email within a few minutes."
     }
 
     if user is None:
@@ -197,13 +197,13 @@ async def forgot_password(
     user = await user_service.get_user_by_email(body.email)
 
     if user:
-        # Відправляємо лист у бекграунді
+        # Send email in background
         background_tasks.add_task(
             send_reset_password_email, user.email, user.username, str(request.base_url)
         )
 
     return {
-        "message": "Якщо ваша адреса є у нашій базі, ви отримаєте лист з інструкціями щодо скидання пароля."
+        "message": "If your address is in our database, you will receive an email with password reset instructions."
     }
 
 
@@ -224,7 +224,7 @@ async def reset_password(
     Raises:
         HTTPException: If token is invalid or user not found.
     """
-    # Дістаємо email з токена
+    # Extract email from token
     email = await get_email_from_token(token)
 
     user_service = UserService(db)
@@ -233,16 +233,16 @@ async def reset_password(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Недійсний токен або користувача не знайдено",
+            detail="Invalid token or user not found",
         )
 
-    # Хешуємо новий пароль та зберігаємо
+    # Hash the new password and save it
     hashed_password = Hash().get_password_hash(body.new_password)
     await user_service.update_password(email, hashed_password)
 
-    # Інвалідуємо кеш Redis для цього користувача, щоб він мусив залогінитись наново
+    # Invalidate Redis cache for this user to force re-login
     from src.services.auth import redis_client
 
     await redis_client.delete(f"user:{user.username}")
 
-    return {"message": "Пароль успішно змінено"}
+    return {"message": "Password successfully changed"}

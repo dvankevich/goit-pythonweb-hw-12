@@ -76,7 +76,7 @@ def test_register_user_already_exists(client):
     )
 
     assert response.status_code == 409
-    assert "already exists" in response.json()["detail"].lower()
+    assert "user with this email already exists" in response.json()["detail"].lower()
 
 
 def test_register_user_duplicate_username(client):
@@ -91,7 +91,7 @@ def test_register_user_duplicate_username(client):
     )
 
     assert response.status_code == 409
-    assert "already exists" in response.json()["detail"].lower()
+    assert "user with this username already exists" in response.json()["detail"].lower()
 
 
 def test_register_duplicate_username(client):
@@ -106,7 +106,7 @@ def test_register_duplicate_username(client):
     )
 
     assert response.status_code == 409
-    assert "already exists" in response.json()["detail"].lower()
+    assert "user with this username already exists" in response.json()["detail"].lower()
 
 
 def test_register_username_too_short(client):

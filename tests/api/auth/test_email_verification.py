@@ -57,7 +57,7 @@ def test_confirmed_email_already_confirmed(mock_get_email, client):
 
     # API повертає 200 для захисту від енумерації
     assert response.status_code == 200
-    assert "ваша електронна пошта вже підтверджена" in response.json()["message"].lower()
+    assert "your email address is already confirmed" in response.json()["message"].lower()
 
 
 def test_confirmed_email_user_not_found(mock_get_email, client):
@@ -112,7 +112,7 @@ def test_request_email_success(client):
     )
 
     assert response.status_code == 200
-    assert "email sent" in response.json()["message"].lower()
+    assert "if your address is in our database, you will receive a confirmation email within a few minutes." in response.json()["message"].lower()
 
 
 def test_request_email_already_confirmed(client):
@@ -122,8 +122,9 @@ def test_request_email_already_confirmed(client):
         json={"email": "deadpool@example.com"},  # Вже підтверджений
     )
 
-    assert response.status_code == 400
-    assert "already confirmed" in response.json()["detail"].lower()
+    # API повертає 200 для захисту від енумерації
+    assert response.status_code == 200
+    assert "if your address is in our database, you will receive a confirmation email within a few minutes." in response.json()["message"].lower()
 
 
 def test_request_email_not_found(client):
@@ -133,8 +134,9 @@ def test_request_email_not_found(client):
         json={"email": "nonexistent@example.com"},
     )
 
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    # API повертає 200 для захисту від енумерації
+    assert response.status_code == 200
+    assert "if your address is in our database, you will receive a confirmation email within a few minutes." in response.json()["message"].lower()
 
 
 def test_request_email_logic_branches(client):
