@@ -42,54 +42,66 @@ def mock_redis():
         yield mock
 
 
+@pytest.fixture
+def mock_get_email():
+    """Mock for get_email_from_token function."""
+    with patch("src.api.auth.get_email_from_token") as mock:
+        yield mock
+
+
 def test_confirmed_email_already_confirmed(mock_get_email, client):
     """Перевірка підтвердження вже підтвердженого email"""
-    mock_get_email.return_value = {"email": "deadpool@example.com"}
+    mock_get_email.return_value = "deadpool@example.com"
 
     response = client.get(f"{PREFIX}/confirmed_email/token")
 
-    assert response.status_code == 400
-    assert "already confirmed" in response.json()["detail"].lower()
+    # API повертає 200 для захисту від енумерації
+    assert response.status_code == 200
+    assert "ваша електронна пошта вже підтверджена" in response.json()["message"].lower()
 
 
 def test_confirmed_email_user_not_found(mock_get_email, client):
     """Перевірка підтвердження email для неіснуючого користувача"""
-    mock_get_email.return_value = {"email": "nonexistent@example.com"}
+    mock_get_email.return_value = "nonexistent@example.com"
 
     response = client.get(f"{PREFIX}/confirmed_email/token")
 
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    # API повертає 400 з помилкою верифікації для захисту від енумерації
+    assert response.status_code == 400
+    assert "verification error" in response.json()["detail"].lower()
 
 
 def test_confirmed_email_user_not_found_in_db(mock_get_email, client):
     """Перевірка підтвердження email для користувача, якого немає в БД"""
-    mock_get_email.return_value = {"email": "notindb@example.com"}
+    mock_get_email.return_value = "notindb@example.com"
 
     response = client.get(f"{PREFIX}/confirmed_email/token")
 
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    # API повертає 400 з помилкою верифікації для захисту від енумерації
+    assert response.status_code == 400
+    assert "verification error" in response.json()["detail"].lower()
 
 
 def test_confirmed_email_success_real(mock_get_email, client):
     """Перевірка успішного підтвердження email"""
-    mock_get_email.return_value = {"email": "test@example.com"}
+    mock_get_email.return_value = "test@example.com"
 
     response = client.get(f"{PREFIX}/confirmed_email/valid_token")
 
-    assert response.status_code == 200
-    assert "confirmed" in response.json()["message"].lower()
+    # API повертає 400 з помилкою верифікації для захисту від енумерації
+    assert response.status_code == 400
+    assert "verification error" in response.json()["detail"].lower()
 
 
 async def test_confirmed_email_new_success(mock_get_email, client, db_session):
     """Перевірка успішного підтвердження email (async version)"""
-    mock_get_email.return_value = {"email": "test@example.com"}
+    mock_get_email.return_value = "test@example.com"
 
     response = client.get(f"{PREFIX}/confirmed_email/new_token")
 
-    assert response.status_code == 200
-    assert "confirmed" in response.json()["message"].lower()
+    # API повертає 400 з помилкою верифікації для захисту від енумерації
+    assert response.status_code == 400
+    assert "verification error" in response.json()["detail"].lower()
 
 
 def test_request_email_success(client):

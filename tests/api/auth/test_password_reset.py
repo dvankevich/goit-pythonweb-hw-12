@@ -42,6 +42,13 @@ def mock_redis():
         yield mock
 
 
+@pytest.fixture
+def mock_get_email():
+    """Mock for get_email_from_token function."""
+    with patch("src.api.auth.get_email_from_token") as mock:
+        yield mock
+
+
 def test_forgot_password_success(client):
     """Перевірка успішного запиту на скидання пароля"""
     response = client.post(
@@ -77,7 +84,7 @@ def test_forgot_password_branches(client):
 
 def test_reset_password_success(mock_get_email, client, mock_redis):
     """Перевірка успішного скидання пароля"""
-    mock_get_email.return_value = {"email": "deadpool@example.com"}
+    mock_get_email.return_value = "deadpool@example.com"
 
     response = client.post(
         f"{PREFIX}/reset_password/token",
@@ -85,12 +92,12 @@ def test_reset_password_success(mock_get_email, client, mock_redis):
     )
 
     assert response.status_code == 200
-    assert "password updated" in response.json()["message"].lower()
+    assert "пароль успішно змінено" in response.json()["message"].lower()
 
 
 def test_reset_password_user_not_found(mock_get_email, client):
     """Перевірка скидання пароля для неіснуючого користувача"""
-    mock_get_email.return_value = {"email": "nonexistent@example.com"}
+    mock_get_email.return_value = "nonexistent@example.com"
 
     response = client.post(
         f"{PREFIX}/reset_password/token",
@@ -103,7 +110,7 @@ def test_reset_password_user_not_found(mock_get_email, client):
 
 def test_reset_password_user_not_found_logic(mock_get_email, client):
     """Перевірка логіки скидання пароля для неіснуючого користувача"""
-    mock_get_email.return_value = {"email": "notfound@example.com"}
+    mock_get_email.return_value = "notfound@example.com"
 
     response = client.post(
         f"{PREFIX}/reset_password/token",
@@ -115,7 +122,7 @@ def test_reset_password_user_not_found_logic(mock_get_email, client):
 
 def test_reset_password_full_flow(mock_get_email, client, mock_redis):
     """Перевірка повного потоку скидання пароля"""
-    mock_get_email.return_value = {"email": "deadpool@example.com"}
+    mock_get_email.return_value = "deadpool@example.com"
 
     # Крок 1: Запит на скидання
     response1 = client.post(
@@ -130,12 +137,12 @@ def test_reset_password_full_flow(mock_get_email, client, mock_redis):
         json={"new_password": "newpassword123"},
     )
     assert response2.status_code == 200
-    assert "password updated" in response2.json()["message"].lower()
+    assert "пароль успішно змінено" in response2.json()["message"].lower()
 
 
 async def test_reset_password_user_missing(mock_get_email, client):
     """Перевірка скидання пароля для відсутнього користувача (async version)"""
-    mock_get_email.return_value = {"email": "missing@example.com"}
+    mock_get_email.return_value = "missing@example.com"
 
     response = client.post(
         f"{PREFIX}/reset_password/token",
