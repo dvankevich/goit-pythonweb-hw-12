@@ -1,5 +1,5 @@
 Create Admin Utility
-===================
+=====================
 
 .. automodule:: src.utils.create_admin
    :members:

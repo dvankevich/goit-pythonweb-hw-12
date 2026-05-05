@@ -1,5 +1,5 @@
 Database Session
-===============
+================
 
 .. automodule:: src.db.session
    :members:

@@ -1,5 +1,5 @@
 File Upload Service
-==================
+======================
 
 .. automodule:: src.services.upload_file
    :members:
@@ -8,7 +8,7 @@ File Upload Service
    :no-index:
 
 UploadFileService Class
-----------------------
+-----------------------
 
 .. autoclass:: src.services.upload_file.UploadFileService
    :members:

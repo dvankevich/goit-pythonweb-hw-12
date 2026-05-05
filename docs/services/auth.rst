@@ -1,5 +1,5 @@
 Authentication Service
-=====================
+=======================
 
 .. automodule:: src.services.auth
    :members:
@@ -17,7 +17,7 @@ Hash Class
    :no-index:
 
 Token Functions
---------------
+----------------
 
 .. autofunction:: src.services.auth.create_access_token
 .. autofunction:: src.services.auth.create_email_token

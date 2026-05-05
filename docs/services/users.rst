@@ -8,7 +8,7 @@ User Service
    :no-index:
 
 UserService Class
-----------------
+------------------
 
 .. autoclass:: src.services.users.UserService
    :members:

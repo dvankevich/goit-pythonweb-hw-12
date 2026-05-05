@@ -42,6 +42,12 @@ source_suffix = {
 # Ensure proper source directory handling
 master_doc = "index"
 
+# Suppress specific warnings
+suppress_warnings = [
+    "ref.ref",
+    "user:ref"
+]
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
