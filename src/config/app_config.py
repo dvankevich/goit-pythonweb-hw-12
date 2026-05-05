@@ -136,37 +136,32 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-# ====================== ДІАГНОСТИКА НАЛАШТУВАНЬ ======================
-# Видалити після перевірки!
-if settings.LOG_LEVEL.upper() == "DEBUG":
+def display_all_settings() -> None:
+    """Display all settings values with SecretStr masking.
+    
+    Shows all configuration settings in name: value format.
+    For SecretStr types, displays asterisks with length indication.
+    """
     print("\n" + "=" * 70)
     print("🔍 ДІАГНОСТИКА НАЛАШТУВАНЬ З .env")
     print("=" * 70)
-
-    print(f"MAIL_SERVER          : {settings.MAIL_SERVER}")
-    print(f"MAIL_PORT            : {settings.MAIL_PORT}")
-    print(f"MAIL_USERNAME        : {settings.MAIL_USERNAME}")
-    print(f"MAIL_FROM            : {settings.MAIL_FROM}")
-    print(f"MAIL_FROM_NAME       : {settings.MAIL_FROM_NAME}")
-    print(
-        f"MAIL_STARTTLS        : {settings.MAIL_STARTTLS} (тип: {type(settings.MAIL_STARTTLS)})"
-    )
-    print(
-        f"MAIL_SSL_TLS         : {settings.MAIL_SSL_TLS} (тип: {type(settings.MAIL_SSL_TLS)})"
-    )
-    print(f"USE_CREDENTIALS      : {settings.USE_CREDENTIALS}")
-    print(f"VALIDATE_CERTS       : {settings.VALIDATE_CERTS}")
-
-    mail_pass = settings.MAIL_PASSWORD.get_secret_value()
-    print(f"MAIL_PASSWORD        : {'*' * 8} (довжина: {len(mail_pass)} символів)")
-
-    print(f"ENABLE_REDIS         : {settings.ENABLE_REDIS}")
-    print(f"REDIS_HOST           : {settings.REDIS_HOST}")
-    print(f"REDIS_PORT           : {settings.REDIS_PORT}")
-
-    jwt_secret_len = len(settings.JWT_SECRET.get_secret_value())
-    print(f"JWT_SECRET           : {'*' * 8} (довжина: {jwt_secret_len} символів)")
-
-    print(f"LOG_LEVEL            : {settings.LOG_LEVEL}")
-    print(f"CORS_ALLOWED_ORIGINS : {settings.CORS_ALLOWED_ORIGINS}")
+    
+    # Automatically get all field names from Settings class
+    field_names = [field_name for field_name in settings.model_fields.keys()]
+    
+    for field_name in field_names:
+        value = getattr(settings, field_name)
+        
+        if isinstance(value, SecretStr):
+            secret_value = value.get_secret_value()
+            masked_value = f"{'*' * 8} (довжина: {len(secret_value)} символів)"
+            print(f"{field_name:<20}: {masked_value}")
+        else:
+            print(f"{field_name:<20}: {value}")
+    
     print("=" * 70 + "\n")
+
+
+# ====================== ДІАГНОСТИКА НАЛАШТУВАНЬ ======================
+if settings.LOG_LEVEL.upper() == "DEBUG":
+    display_all_settings()
