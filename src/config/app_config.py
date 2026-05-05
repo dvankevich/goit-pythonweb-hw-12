@@ -8,6 +8,42 @@ logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
+    """Application configuration settings.
+    
+    Manages all application configuration including database connections,
+    authentication, email services, and other runtime settings.
+    
+    Attributes:
+        POSTGRES_USER: PostgreSQL database username.
+        POSTGRES_PASSWORD: PostgreSQL database password (secret).
+        POSTGRES_DB: PostgreSQL database name.
+        POSTGRES_HOST: PostgreSQL database host.
+        POSTGRES_PORT: PostgreSQL database port.
+        ENABLE_REDIS: Whether Redis caching is enabled.
+        REDIS_HOST: Redis server host.
+        REDIS_PORT: Redis server port.
+        JWT_SECRET: JWT signing secret (secret).
+        JWT_ALGORITHM: JWT signing algorithm.
+        JWT_EXPIRATION_SECONDS: JWT token expiration time in seconds.
+        MAIL_USERNAME: Email service username.
+        MAIL_PASSWORD: Email service password (secret).
+        MAIL_FROM: Default email sender address.
+        MAIL_FROM_NAME: Default email sender name.
+        MAIL_SERVER: SMTP server address.
+        MAIL_PORT: SMTP server port.
+        MAIL_STARTTLS: Whether to use STARTTLS.
+        MAIL_SSL_TLS: Whether to use SSL/TLS.
+        USE_CREDENTIALS: Whether to use SMTP authentication.
+        VALIDATE_CERTS: Whether to validate SSL certificates.
+        CLD_NAME: Cloudinary cloud name.
+        CLD_API_KEY: Cloudinary API key.
+        CLD_API_SECRET: Cloudinary API secret (secret).
+        ADMIN_USERNAME: Default admin username.
+        ADMIN_EMAIL: Default admin email.
+        ADMIN_PASSWORD: Default admin password (secret).
+        CORS_ALLOWED_ORIGINS: Comma-separated list of allowed CORS origins.
+        LOG_LEVEL: Application logging level.
+    """
     # ============================
     # База даних PostgreSQL
     # ============================
@@ -79,7 +115,11 @@ class Settings(BaseSettings):
 
     @property
     def CORS_ORIGINS_LIST(self) -> List[str]:
-        """Повертає список дозволених origins для CORS"""
+        """Parse CORS_ALLOWED_ORIGINS into a list of strings.
+        
+        Returns:
+            List[str]: List of allowed origin URLs for CORS.
+        """
         return [
             origin.strip()
             for origin in self.CORS_ALLOWED_ORIGINS.split(",")
@@ -88,19 +128,31 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        """Асинхронне підключення для FastAPI"""
+        """Generate asynchronous PostgreSQL connection URL.
+        
+        Returns:
+            str: PostgreSQL connection URL for asyncpg driver.
+        """
         password = self.POSTGRES_PASSWORD.get_secret_value()
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{password}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     @property
     def SYNC_DATABASE_URL(self) -> str:
-        """Синхронне підключення для Alembic"""
+        """Generate synchronous PostgreSQL connection URL.
+        
+        Returns:
+            str: PostgreSQL connection URL for psycopg2 driver (Alembic).
+        """
         password = self.POSTGRES_PASSWORD.get_secret_value()
         return f"postgresql+psycopg2://{self.POSTGRES_USER}:{password}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     @property
     def DB_ECHO(self) -> bool:
-        """Вмикати відображення SQL запитів тільки в DEBUG режимі"""
+        """Determine if SQL query echoing should be enabled.
+        
+        Returns:
+            bool: True if LOG_LEVEL is DEBUG, False otherwise.
+        """
         return self.LOG_LEVEL.upper() == "DEBUG"
 
     # ============================
@@ -110,6 +162,17 @@ class Settings(BaseSettings):
     @field_validator("JWT_SECRET")
     @classmethod
     def validate_jwt_secret(cls, v: SecretStr) -> SecretStr:
+        """Validate JWT secret minimum length.
+        
+        Args:
+            v: JWT secret value to validate.
+        
+        Returns:
+            SecretStr: Validated JWT secret.
+        
+        Raises:
+            ValueError: If JWT secret is shorter than 32 characters.
+        """
         if len(v.get_secret_value()) < 32:
             raise ValueError("JWT_SECRET повинен бути не коротшим за 32 символи")
         return v
@@ -117,6 +180,17 @@ class Settings(BaseSettings):
     @field_validator("LOG_LEVEL")
     @classmethod
     def validate_log_level(cls, v: str) -> str:
+        """Validate log level against allowed values.
+        
+        Args:
+            v: Log level string to validate.
+        
+        Returns:
+            str: Uppercase validated log level.
+        
+        Raises:
+            ValueError: If log level is not in allowed values.
+        """
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         if v.upper() not in valid_levels:
             raise ValueError(f"LOG_LEVEL повинен бути одним з: {valid_levels}")
