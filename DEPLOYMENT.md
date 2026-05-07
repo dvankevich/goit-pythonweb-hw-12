@@ -141,13 +141,10 @@ LOG_LEVEL=INFO
 
 Create `docker-compose.prod.yml`:
 ```yaml
-version: '3.8'
-
 services:
-  postgres_db:
+  db:
     image: postgres:15-alpine
-    container_name: contacts_postgres_prod
-    restart: unless-stopped
+    container_name: hw12_postgres_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -155,58 +152,42 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - contacts_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - internal_app_net
 
   redis:
     image: redis:7-alpine
-    container_name: contacts_redis_prod
-    restart: unless-stopped
-    command: redis-server --appendonly yes
+    container_name: hw12_redis
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - contacts_network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
+      - internal_app_net
+    restart: always
 
   app:
     build: .
-    container_name: contacts_api_prod
-    restart: unless-stopped
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_db:5432/${POSTGRES_DB}
-      - ENABLE_REDIS=true
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    container_name: hw12_fastapi_app
     ports:
       - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - db
+      - redis
     networks:
-      - contacts_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - internal_app_net
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  contacts_network:
+  internal_app_net:
     driver: bridge
 ```
 
@@ -361,7 +342,18 @@ docker-compose -f docker-compose.prod.yml logs -f app | grep ERROR
 docker-compose -f docker-compose.prod.yml logs -f app | grep WARNING
 
 # Performance monitoring
-curl -w "@dns_time=%{time_namelookup}s\n@connect_time=%{time_connect}s\n@appconnect_time=%{time_appconnect}s\n@pretransfer_time=%{time_pretransfer}s\n@redirect_time=%{time_redirect}s\n@starttransfer_time=%{time_starttransfer}s\n@total_time=%{time_total}s\n@http_code=%{http_code}\n" -o /dev/null -s "http://localhost:8000/healthcheck"
+```bash
+curl -s -o /dev/null -w " \
+@dns_time=%{time_namelookup}s\n \
+@connect_time=%{time_connect}s\n \
+@appconnect_time=%{time_appconnect}s\n \
+@pretransfer_time=%{time_pretransfer}s\n \
+@redirect_time=%{time_redirect}s\n \
+@starttransfer_time=%{time_starttransfer}s\n \
+@total_time=%{time_total}s\n \
+@http_code=%{http_code}\n" \
+"http://localhost:8000/healthcheck"
+```
 
 # Database monitoring
 docker exec contacts_postgres_prod psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c "SELECT COUNT(*) FROM contacts WHERE created_at > NOW() - INTERVAL '1 hour';"
@@ -419,14 +411,16 @@ docker-compose -f docker-compose.prod.yml exec app alembic upgrade head
 
 ### Rolling Updates
 ```bash
-# Zero-downtime deployment
-docker-compose -f docker-compose.prod.yml up -d --build --scale app=2
+# 1. Build new images without stopping current containers
+docker compose -f docker-compose.prod.yml build
 
-# Wait for new container to be healthy
-sleep 30
+# 2. Execute the update
+# Docker Compose will attempt to create the new container before stopping the old one.
+# This minimizes downtime, though port 8000 might be momentarily occupied during the switch.
+docker compose -f docker-compose.prod.yml up -d --no-deps app
 
-# Remove old container
-docker-compose -f docker-compose.prod.yml up -d --scale app=1
+# 3. Clean up obsolete images to reclaim disk space
+docker image prune -f
 ```
 
 ## 🔧 Troubleshooting

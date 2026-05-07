@@ -88,7 +88,7 @@ The Dockerfile is optimized using a multi-stage build and `python -m compileall`
 ### 3. Database Management
 To connect to the database manually while it is in the isolated network:
 ```bash
-docker exec -it hw10_postgres_db psql -U postgres -d contacts_db
+docker exec -it hw12_postgres_db psql -U postgres -d contacts_db
 ```
 
 ---
@@ -109,8 +109,6 @@ If you prefer to run the application outside of Docker:
     ```bash
     fastapi dev main.py
     ```
-
-This is a professional and clear section for your **README.md** file, covering the setup and execution of the admin creation script.
 
 ---
 
@@ -160,7 +158,7 @@ docker-compose logs -f app
 ## 🚀 Production Deployment (Debian/Ubuntu)
 
 ### Prerequisites
-* **Debian 11+** or **Ubuntu 20.04+**
+* **Debian 12+** or **Ubuntu 22.04+**
 * **Docker & Docker Compose** (latest versions)
 * **Python 3.13+** (if running locally)
 * **Poetry** (for dependency management)
@@ -265,14 +263,19 @@ docker run --rm -v contacts_uploads:/data -v $(pwd):/backup alpine tar czf /back
 
 ## 🧪 Testing
 
-For comprehensive testing instructions, see [TESTING.md](TESTING.md).
+```bash
+# Terminal coverage report
+pytest --cov=src --cov-report=term-missing
 
+# HTML coverage report (detailed)
+pytest --cov=src --cov-report=html
+```
+Coverage HTML written to dir htmlcov
 ---
 
 ## 📚 Documentation
 
 * **API Documentation**: Available at `/docs` endpoint (Swagger UI)
-* **ReDoc Documentation**: Available at `/redoc` endpoint
 * **Generated Documentation**: See `docs/` directory for Sphinx-generated docs
 
 ---
@@ -311,5 +314,3 @@ docker-compose logs app | grep "slow\|timeout\|exception"
 ## 📄 Additional Files
 
 * **[DEPLOYMENT.md](DEPLOYMENT.md)**: Detailed deployment guide
-* **[TESTING.md](TESTING.md)**: Comprehensive testing instructions
-* **[API.md](API.md)**: API endpoint documentation
