@@ -16,7 +16,7 @@ ENV POETRY_NO_INTERACTION=1 \
 WORKDIR /app
 
 # Встановлюємо poetry
-RUN pip install poetry==2.0.1
+RUN pip install poetry==2.3.2
 
 # Копіюємо файли конфігурації залежностей
 COPY pyproject.toml poetry.lock ./
