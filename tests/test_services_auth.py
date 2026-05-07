@@ -71,7 +71,7 @@ async def test_get_email_from_token_invalid():
 @patch("src.services.auth.redis_client")
 @patch("src.services.auth.UserService")
 async def test_get_current_user_cache_hit(mock_user_service, mock_redis, mock_session):
-    # Налаштовуємо Redis Cache Hit
+    # Set up Redis Cache Hit
     mock_redis.get.return_value = (
         '{"id": 1, "username": "testuser", "email": "test@test.com", "role": "user"}'
     )
@@ -86,7 +86,7 @@ async def test_get_current_user_cache_hit(mock_user_service, mock_redis, mock_se
 
     assert user.username == "testuser"
     mock_redis.get.assert_called_once()
-    # Якщо взяли з кешу, UserService не повинен викликатись
+    # If taken from cache, UserService should not be called
     mock_user_service.assert_not_called()
 
 
@@ -96,11 +96,11 @@ async def test_get_current_user_cache_hit(mock_user_service, mock_redis, mock_se
 async def test_get_current_user_redis_error_fallback(
     mock_user_service_class, mock_redis, mock_session
 ):
-    # Емулюємо помилку Redis
+    # Emulate Redis error
     mock_redis.get.side_effect = Exception("Redis is down")
 
-    # Налаштовуємо повернення юзера з бази
-    # Створюємо екземпляр сервісу як мок
+    # Set up return of user from database
+    # Create service instance as mock
     mock_user_service_instance = MagicMock()
     mock_user_service_class.return_value = mock_user_service_instance
 
@@ -108,7 +108,7 @@ async def test_get_current_user_redis_error_fallback(
         id=1, username="testuser", email="test@test.com", role=UserRole.USER
     )
 
-    #  AsyncMock для асинхронного методу
+    # AsyncMock for async method
     mock_user_service_instance.get_user_by_username = AsyncMock(return_value=mock_user)
 
     token = jwt.encode(
@@ -128,7 +128,7 @@ async def test_get_current_user_redis_error_fallback(
 async def test_get_current_admin_user_success(mock_redis):
     admin_user = User(username="admin", role=UserRole.ADMIN)
 
-    # Якщо адмін — повертаємо юзера
+    # If admin - return user
     result = await get_current_admin_user(current_user=admin_user)
     assert result == admin_user
 
@@ -137,7 +137,7 @@ async def test_get_current_admin_user_success(mock_redis):
 async def test_get_current_admin_user_forbidden():
     regular_user = User(username="user", role=UserRole.USER)
 
-    # Якщо не адмін — очікуємо 403 помилку
+    # If not admin - expect 403 error
     with pytest.raises(HTTPException) as exc:
         await get_current_admin_user(current_user=regular_user)
     assert exc.value.status_code == 403

@@ -110,7 +110,7 @@ async def test_create_contact(mock_session):
 
 @pytest.mark.asyncio
 async def test_update_contact_success(mock_session, test_contact):
-    # Мокаємо пошук контакту перед оновленням
+    # Mock contact search before update
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = test_contact
     mock_session.execute = AsyncMock(return_value=mock_result)
@@ -128,7 +128,7 @@ async def test_update_contact_success(mock_session, test_contact):
 
 @pytest.mark.asyncio
 async def test_update_contact_not_found(mock_session):
-    # Контакт не знайдено
+    # Contact not found
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
     mock_session.execute = AsyncMock(return_value=mock_result)
@@ -167,9 +167,9 @@ async def test_delete_contact_not_found(mock_session):
 
 
 @pytest.mark.asyncio
-@patch("src.repositories.contact_repository.date")  # Перевір шлях до файлу
+@patch("src.repositories.contact_repository.date")  # Check file path
 async def test_get_all_upcoming_birthdays_date_logic(mock_date, mock_session):
-    # фіксація дати
+    # Date fixation
     mock_date.today.return_value = date(2025, 12, 29)
     mock_date.side_effect = lambda *args, **kw: date(*args, **kw)
 
@@ -180,7 +180,7 @@ async def test_get_all_upcoming_birthdays_date_logic(mock_date, mock_session):
 
     await get_all(db=mock_session, user_id=1, upcoming_birthdays=True)
 
-    # отримання SQL рядка
+    # Getting SQL string
     called_stmt = mock_session.execute.call_args[0][0]
     compiled_sql = str(called_stmt.compile(compile_kwargs={"literal_binds": True}))
 

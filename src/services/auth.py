@@ -46,7 +46,7 @@ class Hash:
         Returns:
             str: The bcrypt hashed password as a string.
         """
-        # Обрізаємо до 72 байт для безпеки bcrypt
+        # Truncate to 72 bytes for bcrypt security
         password_byte = password.encode("utf-8")[:72]
         salt = bcrypt.gensalt()
         return bcrypt.hashpw(password_byte, salt).decode("utf-8")
@@ -78,7 +78,7 @@ async def create_access_token(data: dict, expires_delta: Optional[int] = None):
 
     to_encode.update({"exp": expire})
 
-    # Важливо: розпаковуємо SecretStr в звичайний рядок
+    # Important: unpack SecretStr to regular string
     secret_key = settings.JWT_SECRET.get_secret_value()
 
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=settings.JWT_ALGORITHM)
@@ -98,7 +98,7 @@ def create_email_token(data: dict):
     expire = datetime.now(UTC) + timedelta(days=7)
     to_encode.update({"iat": datetime.now(UTC), "exp": expire})
 
-    # Розпаковуємо SecretStr
+    # Unpack SecretStr
     secret_key = settings.JWT_SECRET.get_secret_value()
 
     token = jwt.encode(to_encode, secret_key, algorithm=settings.JWT_ALGORITHM)
@@ -125,13 +125,13 @@ async def get_email_from_token(token: str):
         if email is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="Неправильний токен для перевірки електронної пошти",
+                detail="Invalid token for email verification",
             )
         return email
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Неправильний токен для перевірки електронної пошти",
+            detail="Invalid token for email verification",
         )
 
 
@@ -165,7 +165,7 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    # 1. Спроба отримати користувача з кешу Redis
+    # 1. Try to get user from Redis cache
     if settings.ENABLE_REDIS:
         try:
             cached_user = await redis_client.get(f"user:{username}")
@@ -177,13 +177,13 @@ async def get_current_user(
                         user_data["created_at"]
                     )
                 return User(**user_data)
-            # Логуємо випадок, коли кеш увімкнено, але ключа немає (Cache Miss)
+            # Log case when cache is enabled but key is missing (Cache Miss)
             logger.debug(f"User '{username}' not found in Redis cache (Cache Miss).")
 
         except Exception as e:
             logger.warning(f"Redis error: {e}. Falling back to PostgreSQL.")
 
-    # Якщо Redis вимкнено або сталася помилка — йдемо в БД
+    # If Redis is disabled or error occurred - go to database
     logger.debug(f"Retrieving user '{username}' from PostgreSQL database.")
     user_service = UserService(db)
     user = await user_service.get_user_by_username(username)
@@ -191,7 +191,7 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
 
-    # Зберігаємо в кеш тільки якщо він увімкнений
+    # Save to cache only if it is enabled
     if settings.ENABLE_REDIS:
         try:
             user_to_cache = {
@@ -226,7 +226,7 @@ async def get_current_admin_user(current_user: User = Depends(get_current_user))
     Raises:
         HTTPException: If user does not have admin role.
     """
-    # Перевіряємо, чи роль об'єкта збігається з ADMIN
+    # Check if object role matches ADMIN
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

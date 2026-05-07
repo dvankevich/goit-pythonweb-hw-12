@@ -12,10 +12,10 @@ from src.config.app_config import settings
 
 logger = logging.getLogger(__name__)
 
-# Визначаємо абсолютний шлях до папки з шаблонами
+# Define absolute path to templates folder
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
-# Конфігурація підключення до поштового сервера
+# Email server connection configuration
 email_conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
@@ -79,15 +79,15 @@ async def _send_email_base(
         fm = FastMail(email_conf)
         template_path = TEMPLATE_DIR / template_name
 
-        # --- СЦЕНАРІЙ 1: Шаблон відсутній (Fallback) ---
+        # --- SCENARIO 1: Template missing (Fallback) ---
         if not template_path.exists():
             error_log = f"Template '{template_name}' missing in {TEMPLATE_DIR}."
             logger.error(error_log)
 
-            # Сповіщаємо адміна у фоновому режимі, щоб не затримувати користувача
+            # Notify admin in background mode to not delay user
             asyncio.create_task(send_admin_alert(f"{error_log}\nTarget user: {email}"))
 
-            # Формуємо текстову заглушку
+            # Form text stub
             token = template_context.get("token", "N/A")
             host = template_context.get("host", "#")
             body = (
@@ -109,7 +109,7 @@ async def _send_email_base(
             )
             return True
 
-        # --- СЦЕНАРІЙ 2: Все добре, відправляємо HTML ---
+        # --- SCENARIO 2: All good, send HTML ---
         message = MessageSchema(
             subject=subject,
             recipients=[NameEmail(name=username, email=email)],

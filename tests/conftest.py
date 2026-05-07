@@ -13,7 +13,7 @@ from src.models.user import Base, User, UserRole
 from src.services.auth import create_access_token, Hash
 from src.config.app_config import settings
 
-# Налаштування тестової бази SQLite в пам'яті
+# Test SQLite in-memory database setup
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
 engine = create_async_engine(
@@ -26,7 +26,7 @@ TestingSessionLocal = async_sessionmaker(
     autocommit=False, autoflush=False, expire_on_commit=False, bind=engine
 )
 
-# Тестовий користувач для інтеграційних тестів
+# Test user for integration tests
 test_user_data = {
     "username": "deadpool",
     "email": "deadpool@example.com",
@@ -38,13 +38,13 @@ test_user_data = {
 
 @pytest.fixture
 def mock_session():
-    """Універсальна сесія для модульних тестів репозиторіїв та сервісів"""
+    """Universal session for unit testing repositories and services"""
     return AsyncMock(spec=AsyncSession)
 
 
 @pytest.fixture
 def mock_user():
-    """Базовий мок користувача для модульних тестів"""
+    """Basic user mock for unit testing"""
     return User(
         id=1,
         username="test_user",
@@ -59,7 +59,7 @@ def mock_user():
 
 @pytest.fixture(scope="module", autouse=True)
 def init_models_wrap():
-    """Створює таблиці та тестового користувача перед початком тестів модуля"""
+    """Creates tables and test user before starting module tests"""
 
     async def init_models():
         async with engine.begin() as conn:
@@ -83,16 +83,16 @@ def init_models_wrap():
 
 @pytest.fixture
 async def db_session():
-    """Фікстура для прямої роботи з тестовою БД"""
+    """Fixture for direct work with test database"""
     async with TestingSessionLocal() as session:
         yield session
-        # Після тесту можна очистити сесію, якщо потрібно
+        # After test, clear session if needed
         await session.rollback()
 
 
 @pytest.fixture(scope="session")
 def client():
-    """Налаштовує TestClient та перевизначає залежність БД"""
+    """Sets up TestClient and overrides database dependency"""
     from main import app
     from src.db.session import get_db
 
@@ -113,14 +113,14 @@ def client():
 
 @pytest_asyncio.fixture()
 async def get_token():
-    """Генерує JWT токен для авторизованих запитів у тестах"""
+    """Generates JWT token for authorized requests in tests"""
     token = await create_access_token(data={"sub": test_user_data["username"]})
     return token
 
 
 @pytest_asyncio.fixture()
 async def get_admin_token():
-    """Створює реального адміна в БД та повертає його токен"""
+    """Creates real admin in database and returns their token"""
     async with TestingSessionLocal() as session:
         query = select(User).filter(User.username == settings.ADMIN_USERNAME)
         result = await session.execute(query)
@@ -134,7 +134,7 @@ async def get_admin_token():
                 username=settings.ADMIN_USERNAME,
                 email=settings.ADMIN_EMAIL,
                 hashed_password=hashed_password,
-                role=UserRole.ADMIN,  # Ось тут ключова перевірка
+                role=UserRole.ADMIN,  # This is the key check
                 confirmed=True,
             )
             session.add(admin)

@@ -24,7 +24,7 @@ def upgrade() -> None:
         "users",
         "created_at",
         existing_type=sa.DateTime(),
-        server_default=sa.text("now()"),  # АБО sa.func.now()
+        server_default=sa.text("now()"),  # OR sa.func.now()
         existing_nullable=False,
     )
 

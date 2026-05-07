@@ -14,7 +14,7 @@ router = APIRouter(prefix="/contacts", tags=["contacts"])
 async def create_contact(
     contact: ContactCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),  # Отримуємо поточного користувача
+    current_user: User = Depends(get_current_user),  # Get current user
 ):
     """Create a new contact for the authenticated user.
     

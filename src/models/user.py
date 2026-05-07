@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 from datetime import datetime
 from enum import Enum
-from sqlalchemy import String, func, Enum as SqlEnum  # Додано SqlEnum
+from sqlalchemy import String, func, Enum as SqlEnum  # Added SqlEnum
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy.sql.sqltypes import DateTime
 

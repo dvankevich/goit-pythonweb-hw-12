@@ -33,7 +33,7 @@ import uvicorn
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.middleware.cors import CORSMiddleware  # Імпортуємо Middleware
+from fastapi.middleware.cors import CORSMiddleware  # Import Middleware
 from starlette.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
     Yields:
         None: Control is yielded to the application for normal operation.
     """
-    # Код, який виконується ПРИ ЗАПУСКУ
+    # Code that executes ON STARTUP
     if settings.ENABLE_REDIS:
         is_connected = await check_redis_connection()
         if not is_connected:
@@ -75,9 +75,9 @@ async def lifespan(app: FastAPI):
     else:
         logging.info("Redis caching is disabled by configuration.")
 
-    yield  # Тут застосунок працює і приймає запити
+    yield  # Here application works and accepts requests
 
-    # Код, який виконується ПРИ ВИМКНЕННІ
+    # Code that executes ON SHUTDOWN
     if settings.ENABLE_REDIS:
         await redis_client.aclose()
         logging.info("Redis connection closed.")
@@ -96,10 +96,10 @@ app.state.limiter = limiter
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS_LIST,  # Список дозволених джерел
-    allow_credentials=True,  # Дозволити передачу Cookies та Authorization headers
-    allow_methods=["*"],  # Дозволити всі методи (GET, POST, PUT, DELETE тощо)
-    allow_headers=["*"],  # Дозволити всі заголовки
+    allow_origins=settings.CORS_ORIGINS_LIST,  # List of allowed origins
+    allow_credentials=True,  # Allow sending Cookies and Authorization headers
+    allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Allow all headers
 )
 # -------------------------
 
@@ -119,7 +119,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     """
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        content={"error": "Перевищено ліміт запитів. Спробуйте пізніше."},
+        content={"error": "Request limit exceeded. Try again later."},
     )
 
 

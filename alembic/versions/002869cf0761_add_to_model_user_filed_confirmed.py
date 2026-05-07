@@ -20,13 +20,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # 1. Додаємо колонку як nullable
+    # 1. Add column as nullable
     op.add_column("users", sa.Column("confirmed", sa.Boolean(), nullable=True))
 
-    # 2. Оновлюємо існуючі записи
+    # 2. Update existing records
     op.execute("UPDATE users SET confirmed = False")
 
-    # 3. Встановлюємо NOT NULL
+    # 3. Set NOT NULL
     op.alter_column("users", "confirmed", nullable=False)
 
 

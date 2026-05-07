@@ -1,2 +1,19 @@
-"Always use Google-style docstrings for Python code. Include type hints in the docstrings."
-"use English language"
+# Translation Rules: Ukrainian to English
+
+You are an expert Python refactoring assistant. Your task is to translate all Ukrainian comments and string messages into English.
+
+### Scope of Work:
+1. **Comments**: Translate all comments starting with `#` into technical English.
+2. **Docstrings**: Translate text within triple quotes `"""..."""` or `'''...'''` (module, class, and function documentation).
+3. **String Literals**: Translate text within `"` or `'` that serves as user-facing messages, exceptions, logs, or f-strings.
+
+### Strict Constraints:
+- **DO NOT** change variable names, function/method names, class names, or module names.
+- **DO NOT** alter the code logic, operators, imports, or file structure.
+- **DO NOT** translate dictionary keys unless they are clearly intended as display messages.
+- **Preserve f-string placeholders**: Content inside `{...}` must remain untouched (e.g., `f"Привіт, {user_name}"` -> `f"Hello, {user_name}"`).
+- **Maintain formatting**: Do not add or remove blank lines, and preserve original indentation/spacing.
+
+### Style Guide:
+- Use professional technical terminology (e.g., use "raise exception" instead of "throw error").
+- Keep the translation concise and consistent with Python's PEP 8 and documentation standards.

@@ -25,7 +25,7 @@ class UploadFileService:
         self.api_key = settings.CLD_API_KEY
         self.api_secret = settings.CLD_API_SECRET.get_secret_value()
 
-        # Налаштування Cloudinary
+        # Cloudinary configuration
         cloudinary.config(
             cloud_name=self.cloud_name,
             api_key=self.api_key,
@@ -52,12 +52,12 @@ class UploadFileService:
         try:
             public_id = f"RestApp/{username}"
 
-            # Завантажуємо файл
+            # Upload file
             upload_result = cloudinary.uploader.upload(
                 file.file, public_id=public_id, overwrite=True, resource_type="image"
             )
 
-            # Генеруємо оптимізований URL
+            # Generate optimized URL
             optimized_url = cloudinary.CloudinaryImage(public_id).build_url(
                 width=250, height=250, crop="fill", version=upload_result.get("version")
             )
@@ -69,5 +69,5 @@ class UploadFileService:
             logger.error(f"Cloudinary upload failed for user {username}: {e}")
             raise HTTPException(
                 status_code=500,
-                detail="Не вдалося завантажити аватар. Спробуйте пізніше.",
+                detail="Failed to upload avatar. Try again later.",
             ) from e

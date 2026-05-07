@@ -7,7 +7,7 @@ PREFIX = "/api/auth"
 
 def get_field_limit(field_name: str, limit_type: str):
     """
-    limit_type може бути 'min_length' або 'max_length'
+    limit_type can be 'min_length' or 'max_length'
     """
     field = UserCreate.model_fields[field_name]
     for meta in field.metadata:
@@ -40,11 +40,11 @@ def mock_redis():
         yield mock
 
 
-# --- ТЕСТИ РЕЄСТРАЦІЇ ---
+# --- REGISTRATION TESTS ---
 
 
 def test_register_user_success(client, mock_email_services):
-    mock_send, _ = mock_email_services  # Дістаємо мок відправки листа
+    mock_send, _ = mock_email_services  # Get the email sending mock
 
     response = client.post(
         f"{PREFIX}/register",
@@ -55,14 +55,14 @@ def test_register_user_success(client, mock_email_services):
         },
     )
     assert response.status_code == 201
-    # Перевіряємо, що фонова задача була додана (лист "відправлено")
+    # Check that background task was added (email "sent")
     assert mock_send.called
-    # Перевіряємо, чи правильному адресату
+    # Check that it's for the correct recipient
     assert mock_send.call_args[0][0] == "new_hero@example.com"
 
 
 def test_register_user_already_exists(client):
-    # deadpool вже створений у conftest.py
+    # deadpool is already created in conftest.py
     response = client.post(
         f"{PREFIX}/register",
         json={
@@ -72,14 +72,14 @@ def test_register_user_already_exists(client):
         },
     )
     assert response.status_code == 409
-    assert "вже існує" in response.json()["detail"]
+    assert "already exists" in response.json()["detail"]
 
 
-# --- ТЕСТИ ЛОГІНУ ---
+# --- LOGIN TESTS ---
 
 
 def test_login_user_success(client):
-    # Дані deadpool з conftest.py
+    # deadpool data from conftest.py
     response = client.post(
         f"{PREFIX}/login",
         data={"username": "deadpool", "password": "secretpassword"},
@@ -96,23 +96,23 @@ def test_login_wrong_password(client):
         data={"username": "deadpool", "password": "wrongpassword"},
     )
     assert response.status_code == 401
-    assert "Неправильний логін" in response.json()["detail"]
+    assert "Invalid login or password" in response.json()["detail"]
 
 
-# --- ТЕСТИ ПІДТВЕРДЖЕННЯ EMAIL ---
+# --- EMAIL CONFIRMATION TESTS ---
 
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 def test_confirmed_email_already_confirmed(mock_get_email, client):
     mock_get_email.return_value = "deadpool@example.com"
 
-    # deadpool у conftest має confirmed=True
+    # deadpool in conftest has confirmed=True
     response = client.get(f"{PREFIX}/confirmed_email/valid_token")
     assert response.status_code == 200
-    assert "вже підтверджена" in response.json()["message"]
+    assert "already confirmed" in response.json()["message"]
 
 
-# --- ТЕСТИ ПАРОЛЯ ---
+# --- PASSWORD TESTS ---
 
 
 def test_forgot_password_success(client):
@@ -120,7 +120,7 @@ def test_forgot_password_success(client):
         f"{PREFIX}/forgot_password", json={"email": "deadpool@example.com"}
     )
     assert response.status_code == 200
-    assert "інструкціями" in response.json()["message"]
+    assert "instructions" in response.json()["message"]
 
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
@@ -131,42 +131,42 @@ def test_reset_password_success(mock_get_email, client, mock_redis):
         f"{PREFIX}/reset_password/some_token", json={"new_password": "newpassword123"}
     )
     assert response.status_code == 200
-    assert "Пароль успішно змінено" in response.json()["message"]
+    assert "Password successfully changed" in response.json()["message"]
 
 
-# --- ДОДАТКОВІ ТЕСТИ РЕЄСТРАЦІЇ ---
+# --- ADDITIONAL REGISTRATION TESTS ---
 
 
 def test_register_user_duplicate_username(client):
-    """Перевірка помилки при існуючому username, але іншому email"""
+    """Check error for existing username with different email"""
     response = client.post(
         f"{PREFIX}/register",
         json={
-            "username": "deadpool",  # Вже існує
+            "username": "deadpool",  # Already exists
             "email": "another_email@example.com",
             "password": "somepassword",
         },
     )
     assert response.status_code == 409
-    assert "з таким іменем вже існує" in response.json()["detail"]
+    assert "with this name already exists" in response.json()["detail"]
 
 
-# --- ДОДАТКОВІ ТЕСТИ ЛОГІНУ ---
+# --- ADDITIONAL LOGIN TESTS ---
 
 
 def test_login_user_not_found(client):
-    """Спроба логіну під неіснуючим користувачем"""
+    """Attempt login with non-existent user"""
     response = client.post(
         f"{PREFIX}/login",
         data={"username": "ghost_user", "password": "password"},
     )
     assert response.status_code == 401
-    assert "Неправильний логін або пароль" in response.json()["detail"]
+    assert "Invalid login or password" in response.json()["detail"]
 
 
 def test_login_user_unconfirmed(client):
-    """Спроба логіну з непідтвердженою поштою"""
-    # 1. Реєструємо нового юзера (за замовчуванням confirmed=False)
+    """Attempt login with unconfirmed email"""
+    # 1. Register new user (default confirmed=False)
     client.post(
         f"{PREFIX}/register",
         json={
@@ -175,21 +175,21 @@ def test_login_user_unconfirmed(client):
             "password": "password123",
         },
     )
-    # 2. Пробуємо залогінитись
+    # 2. Try to login
     response = client.post(
         f"{PREFIX}/login",
         data={"username": "unconfirmed_user", "password": "password123"},
     )
     assert response.status_code == 401
-    assert "не підтверджена" in response.json()["detail"]
+    assert "not confirmed" in response.json()["detail"]
 
 
-# --- ДОДАТКОВІ ТЕСТИ ПІДТВЕРДЖЕННЯ EMAIL ---
+# --- ADDITIONAL EMAIL CONFIRMATION TESTS ---
 
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 def test_confirmed_email_user_not_found(mock_get_email, client):
-    """Коли токен валідний, але користувача з таким email немає в базі"""
+    """When token is valid but user with such email doesn't exist in database"""
     mock_get_email.return_value = "ghost@example.com"
     response = client.get(f"{PREFIX}/confirmed_email/valid_token")
     assert response.status_code == 400
@@ -198,7 +198,7 @@ def test_confirmed_email_user_not_found(mock_get_email, client):
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 def test_confirmed_email_user_not_found_in_db(mock_get_email, client):
-    # Токен валідний, повертає імейл, але в базі такого юзера немає
+    # Token is valid, returns email, but no such user in database
     mock_get_email.return_value = "unknown@example.com"
     response = client.get(f"{PREFIX}/confirmed_email/valid_token")
     assert response.status_code == 400
@@ -207,28 +207,28 @@ def test_confirmed_email_user_not_found_in_db(mock_get_email, client):
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 def test_confirmed_email_success_real(mock_get_email, client):
-    """Успішне підтвердження пошти для непідтвердженого юзера"""
-    # Використовуємо юзера з попереднього тесту
+    """Successful email confirmation for unconfirmed user"""
+    # Use user from previous test
     mock_get_email.return_value = "unconfirmed@example.com"
     response = client.get(f"{PREFIX}/confirmed_email/valid_token")
     assert response.status_code == 200
-    assert "підтверджено" in response.json()["message"]
+    assert "confirmed" in response.json()["message"]
 
 
-# --- ТЕСТИ REQUEST EMAIL ---
+# --- REQUEST EMAIL TESTS ---
 
 
 def test_request_email_success(client):
-    """Запит на лист для існуючого і непідтвердженого користувача"""
+    """Request email for existing and unconfirmed user"""
     response = client.post(
         f"{PREFIX}/request_email", json={"email": "unconfirmed@example.com"}
     )
     assert response.status_code == 200
-    assert "ви отримаєте лист" in response.json()["message"]
+    assert "in our database" in response.json()["message"]
 
 
 def test_request_email_already_confirmed(client):
-    """Запит на лист для вже підтвердженого користувача (deadpool)"""
+    """Request email for already confirmed user (deadpool)"""
     response = client.post(
         f"{PREFIX}/request_email", json={"email": "deadpool@example.com"}
     )
@@ -236,35 +236,35 @@ def test_request_email_already_confirmed(client):
 
 
 def test_request_email_not_found(client):
-    """Запит на лист для неіснуючого користувача"""
+    """Request email for non-existent user"""
     response = client.post(
         f"{PREFIX}/request_email", json={"email": "ghost@example.com"}
     )
-    # Відповідь завжди 200, щоб уникнути енумерації
+    # Response is always 200 to avoid enumeration
     assert response.status_code == 200
 
 
-# --- ДОДАТКОВІ ТЕСТИ СКИДАННЯ ПАРОЛЯ ---
+# --- ADDITIONAL PASSWORD RESET TESTS ---
 
 
 def test_forgot_password_not_found(client):
-    """Запит на скидання пароля для неіснуючого юзера"""
+    """Request password reset for non-existent user"""
     response = client.post(
         f"{PREFIX}/forgot_password", json={"email": "ghost@example.com"}
     )
-    # Відповідь має бути 200 незалежно від наявності юзера
+    # Response should be 200 regardless of user existence
     assert response.status_code == 200
 
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 def test_reset_password_user_not_found(mock_get_email, client):
-    """Спроба скинути пароль з токеном неіснуючого юзера"""
+    """Attempt password reset with token of non-existent user"""
     mock_get_email.return_value = "ghost@example.com"
     response = client.post(
         f"{PREFIX}/reset_password/some_token", json={"new_password": "newpassword123"}
     )
     assert response.status_code == 400
-    assert "Недійсний токен" in response.json()["detail"]
+    assert "Invalid token" in response.json()["detail"]
 
 
 # ------
@@ -273,7 +273,7 @@ def test_reset_password_user_not_found(mock_get_email, client):
 @pytest.mark.asyncio
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 async def test_confirmed_email_new_success(mock_get_email, client, db_session):
-    """Тест переходу непідтвердженого користувача в підтверджений"""
+    """Test transition of unconfirmed user to confirmed"""
     from src.models.user import User
 
     email = "fresh_user@example.com"
@@ -286,25 +286,25 @@ async def test_confirmed_email_new_success(mock_get_email, client, db_session):
 
     db_session.add(new_user)
     await db_session.commit()
-    await db_session.refresh(new_user)  # Оновлюємо об'єкт з бази
+    await db_session.refresh(new_user)  # Update object from database
 
     mock_get_email.return_value = email
 
     response = client.get(f"{PREFIX}/confirmed_email/some_token")
 
     assert response.status_code == 200
-    assert "підтверджено" in response.json()["message"]
+    assert "confirmed" in response.json()["message"]
 
 
 def test_request_email_logic_branches(client):
-    """Покриття рядків 107-121 (request_email)"""
-    # Гілка: юзера не існує
+    """Coverage of lines 107-121 (request_email)"""
+    # Branch: user doesn't exist
     resp = client.post(
         f"{PREFIX}/request_email", json={"email": "nonexistent@example.com"}
     )
     assert resp.status_code == 200
 
-    # Гілка: юзер вже підтверджений
+    # Branch: user already confirmed
     resp = client.post(
         f"{PREFIX}/request_email", json={"email": "deadpool@example.com"}
     )
@@ -312,32 +312,32 @@ def test_request_email_logic_branches(client):
 
 
 def test_forgot_password_branches(client):
-    """Покриття рядків 135-141 (forgot_password)"""
-    # Юзер існує (deadpool) - має спрацювати background task
+    """Coverage of lines 135-141 (forgot_password)"""
+    # User exists (deadpool) - should trigger background task
     resp = client.post(
         f"{PREFIX}/forgot_password", json={"email": "deadpool@example.com"}
     )
     assert resp.status_code == 200
 
-    # Юзер не існує
+    # User doesn't exist
     resp = client.post(f"{PREFIX}/forgot_password", json={"email": "ghost@example.com"})
     assert resp.status_code == 200
 
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 def test_reset_password_user_not_found_logic(mock_get_email, client):
-    """Покриття рядків 156-171 (якщо юзера не знайдено за імейлом з токена)"""
+    """Coverage of lines 156-171 (if user not found by email from token)"""
     mock_get_email.return_value = "never_existed@example.com"
     response = client.post(
         f"{PREFIX}/reset_password/token", json={"new_password": "new_pass_123"}
     )
     assert response.status_code == 400
-    assert "користувача не знайдено" in response.json()["detail"]
+    assert "user not found" in response.json()["detail"]
 
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 def test_reset_password_full_flow(mock_get_email, client, mock_redis):
-    # Підготовка: імейл deadpool
+    # Preparation: deadpool email
     email = "deadpool@example.com"
     mock_get_email.return_value = email
 
@@ -347,7 +347,7 @@ def test_reset_password_full_flow(mock_get_email, client, mock_redis):
     )
 
     assert response.status_code == 200
-    # Перевіряємо, чи видалено ключ з Redis (рядок 168-169 у твоєму api/auth.py)
+    # Check if Redis key was deleted (line 168-169 in your api/auth.py)
     mock_redis.delete.assert_called_with(f"user:deadpool")
 
 
@@ -355,13 +355,13 @@ def test_register_duplicate_username(client):
     response = client.post(
         f"{PREFIX}/register",
         json={
-            "username": "deadpool",  # вже є в базі
+            "username": "deadpool",  # already in database
             "email": "unique_hero@example.com",
             "password": "password",
         },
     )
     assert response.status_code == 409
-    assert "іменем вже існує" in response.json()["detail"]
+    assert "with this name already exists" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -385,19 +385,19 @@ async def test_login_user_not_confirmed(client, db_session):
         f"{PREFIX}/login", data={"username": "lazy_user", "password": raw_password}
     )
     assert response.status_code == 401
-    assert "не підтверджена" in response.json()["detail"]
+    assert "not confirmed" in response.json()["detail"]
 
 
 @patch("src.api.auth.get_email_from_token", new_callable=AsyncMock)
 async def test_reset_password_user_missing(mock_get_email, client):
     mock_get_email.return_value = (
-        "deleted_user@example.com"  # Такого email немає в базі
+        "deleted_user@example.com"  # No such email in database
     )
     response = client.post(
         f"{PREFIX}/reset_password/token", json={"new_password": "testpassword123"}
     )
     assert response.status_code == 400
-    assert "користувача не знайдено" in response.json()["detail"]
+    assert "user not found" in response.json()["detail"]
 
 
 def test_register_username_too_short(client):
@@ -412,7 +412,7 @@ def test_register_username_too_short(client):
         },
     )
     assert response.status_code == 422
-    # Перевіряємо, чи вказана правильна кількість у повідомленні помилки
+    # Check if correct quantity is specified in error message
     error_msg = response.json()["detail"][0]["msg"]
     assert f"at least {USERNAME_MIN} characters" in error_msg
 

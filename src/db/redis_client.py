@@ -6,20 +6,20 @@ from src.config.app_config import settings
 
 logger = logging.getLogger(__name__)
 
-# Створюємо пул з'єднань окремо. Це надійніший спосіб передачі таймаутів
-# в асинхронному середовищі, оскільки пул керує кожним новим сокетом.
+# Create connection pool separately. This is a more reliable way to pass timeouts
+# in async environment, as pool manages each new socket.
 pool = redis.ConnectionPool(
     host=settings.REDIS_HOST,
     port=settings.REDIS_PORT,
     db=0,
     decode_responses=True,
-    socket_timeout=0.1,  # 100мс на відповідь від Redis
-    socket_connect_timeout=0.1,  # 100мс на встановлення TCP-з'єднання
-    max_connections=20,  # Обмеження пулу для запобігання витоку ресурсів
-    retry_on_timeout=False,  # Відразу йдемо в fallback (БД) при таймауті
+    socket_timeout=0.1,  # 100ms for response from Redis
+    socket_connect_timeout=0.1,  # 100ms for TCP connection establishment
+    max_connections=20,  # Pool limit to prevent resource leaks
+    retry_on_timeout=False,  # Immediately go to fallback (DB) on timeout
 )
 
-# Ініціалізуємо клієнт через пул
+# Initialize client through pool
 redis_client = redis.Redis(connection_pool=pool)
 
 
@@ -36,7 +36,7 @@ async def check_redis_connection() -> bool:
         return False
 
     try:
-        # Зовнішній таймаут 200мс для гарантії швидкодії
+        # External timeout 200ms to guarantee responsiveness
         return await asyncio.wait_for(cast(Awaitable[bool], redis_client.ping()), timeout=0.2)
     except asyncio.TimeoutError:
         logger.warning("Redis connection timed out (external limit).")
@@ -63,7 +63,7 @@ async def invalidate_cache(key: str):
     """
     if settings.ENABLE_REDIS:
         try:
-            # Додаємо логування перед видаленням
+            # Add logging before deletion
             logger.debug(f"Attempting to invalidate Redis cache for key: {key}")
 
             result = await redis_client.delete(key)

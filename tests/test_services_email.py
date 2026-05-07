@@ -13,7 +13,7 @@ def mock_fastmail():
         yield fm_instance
 
 
-# Фікстура, щоб тести завжди думали, що HTML-шаблони існують
+# Fixture so tests always think HTML templates exist
 @pytest.fixture
 def mock_templates_exist():
     with patch("src.services.email.Path.exists") as mock_exists:
@@ -23,7 +23,7 @@ def mock_templates_exist():
 
 @pytest.mark.asyncio
 async def test_send_email_success(mock_fastmail, mock_templates_exist):
-    """Тест успішного надсилання листа для підтвердження"""
+    """Test of successful email sending for confirmation"""
     email = "test@example.com"
     username = "testuser"
     host = "http://localhost:8000"
@@ -35,7 +35,7 @@ async def test_send_email_success(mock_fastmail, mock_templates_exist):
 
         assert mock_fastmail.send_message.called
 
-        # Отримуємо аргументи виклику
+        # Get call arguments
         args, kwargs = mock_fastmail.send_message.call_args
         message = args[0]
         template_name = kwargs.get("template_name")
@@ -47,7 +47,7 @@ async def test_send_email_success(mock_fastmail, mock_templates_exist):
 
 @pytest.mark.asyncio
 async def test_send_reset_password_email_success(mock_fastmail, mock_templates_exist):
-    """Тест успішного надсилання листа для скидання пароля"""
+    """Test of successful email sending for password reset"""
     email = "reset@example.com"
     username = "resetuser"
     host = "http://localhost:8000"
@@ -67,11 +67,11 @@ async def test_send_reset_password_email_success(mock_fastmail, mock_templates_e
 
 @pytest.mark.asyncio
 async def test_send_email_fallback_flow(mock_fastmail):
-    """Окремий тест для перевірки логіки Fallback (коли шаблон не знайдено)"""
+    """Separate test to check Fallback logging (when template not found)"""
     email = "fallback@example.com"
 
     with patch("src.services.email.Path.exists", return_value=False):
-        # Використовуємо AsyncMock для адмінського сповіщення
+        # Use AsyncMock for admin notification
         with patch(
             "src.services.email.send_admin_alert", new_callable=AsyncMock
         ) as mock_admin:

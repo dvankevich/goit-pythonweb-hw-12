@@ -7,13 +7,13 @@ HEALTH_PATH = "src.api.health"
 
 @pytest.mark.asyncio
 async def test_healthcheck_full_success(client):
-    """Тест: Все працює (200 OK)"""
+    """Test: Everything works (200 OK)"""
     with patch(
         f"{HEALTH_PATH}.check_redis_connection", new_callable=AsyncMock
     ) as mock_redis:
         mock_redis.return_value = True
 
-        # Виклик без префікса, як ви вказали
+        # Call without prefix, as specified
         response = client.get("/healthcheck")
 
         assert response.status_code == 200
@@ -33,7 +33,7 @@ async def test_healthcheck_database_failure(client):
 
 @pytest.mark.asyncio
 async def test_healthcheck_redis_degraded(client):
-    """Тест: База ок, але Redis впав (degraded)"""
+    """Test: Database OK, but Redis down (degraded)"""
     with patch(
         f"{HEALTH_PATH}.check_redis_connection", new_callable=AsyncMock
     ) as mock_redis:
@@ -48,7 +48,7 @@ async def test_healthcheck_redis_degraded(client):
 
 @pytest.mark.asyncio
 async def test_healthcheck_redis_disabled(client):
-    # Підміняємо значення ENABLE_REDIS на False в самому об'єкті settings
+    # Change ENABLE_REDIS value to False in the settings object itself
     with patch.object(settings, "ENABLE_REDIS", False):
         response = client.get("/healthcheck")
 

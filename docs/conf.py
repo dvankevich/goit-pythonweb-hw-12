@@ -26,7 +26,7 @@ extensions = [
     "sphinx.ext.viewcode",
 ]
 
-# Налаштування Napoleon для Google Style
+# Napoleon configuration for Google Style
 napoleon_google_docstring = True
 napoleon_use_param = True
 napoleon_use_rtype = True

@@ -4,14 +4,14 @@ from unittest.mock import AsyncMock, patch
 from src.services.users import UserService
 from src.schemas.user import UserCreate
 
-# ====================== ФІКСТУРИ ======================
+# ====================== FIXTURES ======================
 
 
 @pytest.fixture
 def user_service(mock_session):
-    """Створює екземпляр сервісу з ізольованим (замоканим) репозиторієм"""
+    """Creates service instance with isolated (mocked) repository"""
     service = UserService(mock_session)
-    # Підміняємо репозиторій на мок, щоб перевіряти лише виклики, а не БД
+    # Replace repository with mock to test only calls, not DB
     service.repository = AsyncMock()
     return service
 
@@ -23,7 +23,7 @@ def user_create_data():
     )
 
 
-# ====================== ТЕСТИ ДЛЯ CREATE USER (Gravatar) ======================
+# ====================== TESTS FOR CREATE USER (Gravatar) ======================
 
 
 @pytest.mark.asyncio
@@ -31,7 +31,7 @@ def user_create_data():
 async def test_create_user_gravatar_success(
     mock_gravatar_class, user_service, user_create_data
 ):
-    # мок Gravatar повертає фейковий URL
+    # Gravatar mock returns fake URL
     mock_gravatar_instance = mock_gravatar_class.return_value
     mock_gravatar_instance.get_image.return_value = "http://gravatar.com/avatar/123"
 
@@ -47,17 +47,17 @@ async def test_create_user_gravatar_success(
 async def test_create_user_gravatar_error(
     mock_gravatar_class, user_service, user_create_data
 ):
-    # сталася мережева помилка
+    # Network error occurred
     mock_gravatar_instance = mock_gravatar_class.return_value
     mock_gravatar_instance.get_image.side_effect = Exception("Gravatar API is down")
 
     await user_service.create_user(user_create_data)
 
-    # перевірка що помилка була перехоплена avatar=None
+    # check that error was caught with avatar=None
     user_service.repository.create_user.assert_called_once_with(user_create_data, None)
 
 
-# ====================== ТЕСТИ ДЛЯ ДЕЛЕГОВАНИХ МЕТОДІВ ======================
+# ====================== TESTS FOR DELEGATED METHODS ======================
 
 
 @pytest.mark.asyncio

@@ -15,7 +15,7 @@ def mock_upload_service():
         yield instance
 
 
-# --- ТЕСТИ /me ---
+# --- /me TESTS ---
 
 
 def test_get_me_success(client, get_token):
@@ -33,7 +33,7 @@ def test_get_me_unauthorized(client):
     assert response.status_code == 401
 
 
-# --- ТЕСТИ /avatar ---
+# --- /avatar TESTS ---
 
 
 def test_update_avatar_as_regular_user_fails(client, get_token):
@@ -66,7 +66,7 @@ def test_update_avatar_as_admin_success(client, get_admin_token, mock_upload_ser
 
 
 def test_update_avatar_no_file(client, get_admin_token):
-    # Відправляємо запит без аргументу files
+    # Send request without files argument
     response = client.patch(
         f"{PREFIX}/avatar", headers={"Authorization": f"Bearer {get_admin_token}"}
     )

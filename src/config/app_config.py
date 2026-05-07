@@ -45,7 +45,7 @@ class Settings(BaseSettings):
         LOG_LEVEL: Application logging level.
     """
     # ============================
-    # База даних PostgreSQL
+    # PostgreSQL Database
     # ============================
     POSTGRES_USER: str = Field(default="postgres")
     POSTGRES_PASSWORD: SecretStr = Field(default=SecretStr("567234"))
@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = Field(default=6379)
 
     # ============================
-    # JWT Автентифікація
+    # JWT Authentication
     # ============================
     JWT_SECRET: SecretStr = Field(
         default=SecretStr("your_super_secret_jwt_key_change_in_production")
@@ -105,12 +105,12 @@ class Settings(BaseSettings):
     )
 
     # ============================
-    # Логування
+    # Logging
     # ============================
     LOG_LEVEL: str = Field(default="INFO")
 
     # ============================
-    # Property методи
+    # Property methods
     # ============================
 
     @property
@@ -156,7 +156,7 @@ class Settings(BaseSettings):
         return self.LOG_LEVEL.upper() == "DEBUG"
 
     # ============================
-    # Валідація
+    # Validation
     # ============================
 
     @field_validator("JWT_SECRET")
@@ -174,7 +174,7 @@ class Settings(BaseSettings):
             ValueError: If JWT secret is shorter than 32 characters.
         """
         if len(v.get_secret_value()) < 32:
-            raise ValueError("JWT_SECRET повинен бути не коротшим за 32 символи")
+            raise ValueError("JWT_SECRET must be at least 32 characters long")
         return v
 
     @field_validator("LOG_LEVEL")
@@ -193,7 +193,7 @@ class Settings(BaseSettings):
         """
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         if v.upper() not in valid_levels:
-            raise ValueError(f"LOG_LEVEL повинен бути одним з: {valid_levels}")
+            raise ValueError(f"LOG_LEVEL must be one of: {valid_levels}")
         return v.upper()
 
     model_config = SettingsConfigDict(
@@ -205,7 +205,7 @@ class Settings(BaseSettings):
 
 
 # ============================
-# Створення екземпляра налаштувань
+# Settings instance creation
 # ============================
 settings = Settings()
 
@@ -217,7 +217,7 @@ def display_all_settings() -> None:
     For SecretStr types, displays asterisks with length indication.
     """
     print("\n" + "=" * 70)
-    print("🔍 ДІАГНОСТИКА НАЛАШТУВАНЬ З .env")
+    print("🔍 SETTINGS DIAGNOSTICS FROM .env")
     print("=" * 70)
     
     # Automatically get all field names from Settings class
@@ -228,7 +228,7 @@ def display_all_settings() -> None:
         
         if isinstance(value, SecretStr):
             secret_value = value.get_secret_value()
-            masked_value = f"{'*' * 8} (довжина: {len(secret_value)} символів)"
+            masked_value = f"{'*' * 8} (length: {len(secret_value)} characters)"
             print(f"{field_name:<20}: {masked_value}")
         else:
             print(f"{field_name:<20}: {value}")
@@ -236,6 +236,6 @@ def display_all_settings() -> None:
     print("=" * 70 + "\n")
 
 
-# ====================== ДІАГНОСТИКА НАЛАШТУВАНЬ ======================
+# ====================== SETTINGS DIAGNOSTICS ======================
 if settings.LOG_LEVEL.upper() == "DEBUG":
     display_all_settings()
