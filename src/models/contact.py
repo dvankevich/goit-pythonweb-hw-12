@@ -78,7 +78,7 @@ class Contact(Base):
         Returns:
             str: Combined first and last name.
         """
-        return f"{self.first_name} {self.last_name}".strip()
+        return " ".join([self.first_name.strip(), self.last_name.strip()]).strip()
     
     def update_from_dict(self, data: dict) -> None:
         """Update contact attributes from a dictionary.
